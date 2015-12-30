@@ -7,8 +7,13 @@ compiler:
 
 before_install:
   - sudo apt-add-repository -y "ppa:george-edison55/precise-backports"
+  - sudo apt-add-repository -y "ppa:ubuntu-toolchain-r/test"
   - sudo apt-get update -qq
   - sudo apt-get install -y cmake cmake-data mpi-default-bin mpi-default-dev libjpeg-dev libpng12-dev
+  - sudo apt-get install -y gcc-4.8 g++-4.8 clang
+
+install:
+  - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
 
 before_script:
   - mkdir build
