@@ -121,7 +121,7 @@ examples_dir = os.path.join(LAMMPS_DIR, 'examples')
 # everything else I still have to test myself or needs adjustment (e.g. number of timesteps)
 skip_list = ['accelerate', 'balance', 'ellipse',
              'hugoniostat', 'kim', 'msst', 'meam', 'nb3b', 'neb', 'peptide', 'peri', 'pour', 'prd',
-             'python', 'qeq', 'reax', 'rerun', 'rigid', 'shear', 'sputter']
+             'python', 'qeq', 'reax', 'rerun', 'rigid', 'shear', 'sputter', 'tad']
 
 for name in os.listdir(examples_dir):
     path = os.path.join(examples_dir, name)
