@@ -18,7 +18,7 @@ LAMMPS_BINARY=os.environ['LAMMPS_BINARY']    # full path of LAMMPS binary being 
 
 class LAMMPSTestCase:
     """ Mixin class for each LAMMPS test case. Defines utility function to run in serial or parallel"""
-    def run_script(self, script_name, nprocs=1, screen=False):
+    def run_script(self, script_name, nprocs=1, screen=True):
         if screen:
             output_options = []
         else:
@@ -35,34 +35,34 @@ class LAMMPSTestCase:
 # The benefit being to customize each test individually, or marking individual tests for being skipped.
 
 
-class BalanceTestCase(LAMMPSTestCase, unittest.TestCase):
-    def setUp(self):
-        self.cwd = os.path.join(LAMMPS_DIR, "examples", 'balance')
-
-    def test_balance_serial(self):
-        rc = self.run_script("in.balance")
-        self.assertEqual(rc, 0)
-
-    def test_balance_parallel(self):
-        rc = self.run_script("in.balance", nprocs=4)
-        self.assertEqual(rc, 0)
-
-    def test_balance_bond_fast_serial(self):
-        rc = self.run_script("in.balance.bond.fast")
-        self.assertEqual(rc, 0)
-
-    @unittest.skip("Randomly crashes")
-    def test_balance_bond_fast_parallel(self):
-        rc = self.run_script("in.balance.bond.fast", nprocs=4)
-        self.assertEqual(rc, 0)
-
-    def test_balance_bond_slow_serial(self):
-        rc = self.run_script("in.balance.bond.slow")
-        self.assertEqual(rc, 0)
-
-    def test_balance_bond_slow_parallel(self):
-        rc = self.run_script("in.balance.bond.slow", nprocs=4)
-        self.assertEqual(rc, 0)
+# class BalanceTestCase(LAMMPSTestCase, unittest.TestCase):
+#     def setUp(self):
+#         self.cwd = os.path.join(LAMMPS_DIR, "examples", 'balance')
+#
+#     def test_balance_serial(self):
+#         rc = self.run_script("in.balance")
+#         self.assertEqual(rc, 0)
+#
+#     def test_balance_parallel(self):
+#         rc = self.run_script("in.balance", nprocs=4)
+#         self.assertEqual(rc, 0)
+#
+#     def test_balance_bond_fast_serial(self):
+#         rc = self.run_script("in.balance.bond.fast")
+#         self.assertEqual(rc, 0)
+#
+#     @unittest.skip("Randomly crashes")
+#     def test_balance_bond_fast_parallel(self):
+#         rc = self.run_script("in.balance.bond.fast", nprocs=4)
+#         self.assertEqual(rc, 0)
+#
+#     def test_balance_bond_slow_serial(self):
+#         rc = self.run_script("in.balance.bond.slow")
+#         self.assertEqual(rc, 0)
+#
+#     def test_balance_bond_slow_parallel(self):
+#         rc = self.run_script("in.balance.bond.slow", nprocs=4)
+#         self.assertEqual(rc, 0)
 
 # To save typing and quickly set this up, I've created a helper function to generate the
 # boilerplate code quickly
@@ -119,7 +119,7 @@ examples_dir = os.path.join(LAMMPS_DIR, 'examples')
 
 # skipping "balance" to not redefine it (see above)
 # everything else I still have to test myself or needs adjustment (e.g. number of timesteps)
-skip_list = ['accelerate', 'balance', 'ellipse',
+skip_list = ['accelerate', 'ellipse',
              'hugoniostat', 'kim', 'msst', 'meam', 'nb3b', 'neb', 'peptide', 'peri', 'pour', 'prd',
              'python', 'qeq', 'reax', 'rerun', 'rigid', 'shear', 'sputter', 'tad']
 
