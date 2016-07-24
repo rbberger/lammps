@@ -120,8 +120,8 @@ examples_dir = os.path.join(LAMMPS_DIR, 'examples')
 # skipping "balance" to not redefine it (see above)
 # everything else I still have to test myself or needs adjustment (e.g. number of timesteps)
 skip_list = ['accelerate', 'ellipse',
-             'hugoniostat', 'kim', 'msst', 'meam', 'nb3b', 'neb', 'peptide', 'peri', 'pour', 'prd',
-             'python', 'qeq', 'reax', 'rerun', 'rigid', 'shear', 'sputter', 'tad']
+             'hugoniostat', 'kim', 'msst', 'nb3b', 'neb', 'prd',
+             'python', 'qeq', 'reax', 'rerun', 'rigid', 'sputter', 'tad']
 
 for name in os.listdir(examples_dir):
     path = os.path.join(examples_dir, name)
