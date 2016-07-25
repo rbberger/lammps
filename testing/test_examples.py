@@ -27,7 +27,7 @@ class LAMMPSTestCase:
         if nprocs > 1:
             return call(["mpirun", "-np", str(nprocs), LAMMPS_BINARY, "-in", script_name] + output_options, cwd=self.cwd)
         elif nthreads > 1:
-            return call(["mpirun", "-np", str(nprocs), LAMMPS_BINARY, "-sf", "omp", "-pk", "omp", "4",  "-in", script_name] + output_options, cwd=self.cwd)
+            return call(["mpirun", "-np", str(nprocs), LAMMPS_BINARY, "-sf", "omp", "-pk", "omp", str(nthreads),  "-in", script_name] + output_options, cwd=self.cwd)
         return call([LAMMPS_BINARY, "-in", script_name] + output_options, cwd=self.cwd)
 
 
