@@ -18,7 +18,7 @@ LAMMPS_BINARY=os.environ['LAMMPS_BINARY']    # full path of LAMMPS binary being 
 
 class LAMMPSTestCase:
     """ Mixin class for each LAMMPS test case. Defines utility function to run in serial or parallel"""
-    def run_script(self, script_name, nprocs=1, screen=True):
+    def run_script(self, script_name, nprocs=1, nthreads=1, screen=True):
         if screen:
             output_options = []
         else:
@@ -26,6 +26,8 @@ class LAMMPSTestCase:
 
         if nprocs > 1:
             return call(["mpirun", "-np", str(nprocs), LAMMPS_BINARY, "-in", script_name] + output_options, cwd=self.cwd)
+        elif nthreads > 1:
+            return call(["mpirun", "-np", str(nprocs), LAMMPS_BINARY, "-sf", "omp", "-pk", "omp", "4",  "-in", script_name] + output_options, cwd=self.cwd)
         return call([LAMMPS_BINARY, "-in", script_name] + output_options, cwd=self.cwd)
 
 
@@ -86,12 +88,19 @@ def CreateLAMMPSTestCase(testcase_name, script_names):
             self.assertEqual(rc, 0)
         return test_parallel_run
 
+    def test_parallel_omp(script_name):
+        def test_parallel_omp_run(self):
+            rc = self.run_script(script_name, nthreads=4)
+            self.assertEqual(rc, 0)
+        return test_parallel_omp_run
+
     methods = {"setUp": setUp}
 
     for script_name in script_names:
         name = '_'.join(script_name.split('.')[1:])
         methods["test_" + name + "_serial"] = test_serial(script_name)
         methods["test_" + name + "_parallel"] = test_parallel(script_name)
+        methods["test_" + name + "_parallel_omp"] = test_parallel_omp(script_name)
 
     return type(testcase_name.title() + "TestCase", (LAMMPSTestCase, unittest.TestCase), methods)
 
