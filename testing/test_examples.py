@@ -143,11 +143,11 @@ for name in os.listdir(examples_dir):
         script_names = map(os.path.basename, glob.glob(os.path.join(path, 'in.*')))
         vars()[name.title() + "TestCase"] = CreateLAMMPSTestCase(name, script_names)
 
-def skip_test(cls, func_name, reason):
+def SkipTest(cls, func_name, reason):
     setattr(cls, func_name, unittest.skip(reason)(getattr(cls, func_name)))
 
-skip_test(CombTestCase, "test_comb3_parallel_omp", "comb3 currently not supported by USER-OMP")
-skip_test(BalanceTestCase, "test_balance_bond_fast_parallel", "Crashes randomly")
+SkipTest(CombTestCase, "test_comb3_parallel_omp", "comb3 currently not supported by USER-OMP")
+SkipTest(BalanceTestCase, "test_balance_bond_fast_parallel", "Crashes randomly")
 
 if __name__ == '__main__':
     unittest.main()
