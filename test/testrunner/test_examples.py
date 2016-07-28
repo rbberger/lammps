@@ -18,17 +18,19 @@ LAMMPS_BINARY=os.environ['LAMMPS_BINARY']    # full path of LAMMPS binary being 
 
 class LAMMPSTestCase:
     """ Mixin class for each LAMMPS test case. Defines utility function to run in serial or parallel"""
-    def run_script(self, script_name, nprocs=1, nthreads=1, screen=True):
+    def run_script(self, script_name, nprocs=1, nthreads=1, screen=True, launcher=[]):
         if screen:
             output_options = []
         else:
             output_options = ["-screen", "none"]
 
+        exe = launcher + [LAMMPS_BINARY]
+
         if nprocs > 1:
-            return call(["mpirun", "-np", str(nprocs), LAMMPS_BINARY, "-in", script_name] + output_options, cwd=self.cwd)
+            return call(["mpirun", "-np", str(nprocs)] + exe + ["-in", script_name] + output_options, cwd=self.cwd)
         elif nthreads > 1:
-            return call(["mpirun", "-np", str(nprocs), LAMMPS_BINARY, "-sf", "omp", "-pk", "omp", str(nthreads),  "-in", script_name] + output_options, cwd=self.cwd)
-        return call([LAMMPS_BINARY, "-in", script_name] + output_options, cwd=self.cwd)
+            return call(["mpirun", "-np", str(nprocs)] + exe + ["-sf", "omp", "-pk", "omp", str(nthreads),  "-in", script_name] + output_options, cwd=self.cwd)
+        return call(exe + ["-in", script_name] + output_options, cwd=self.cwd)
 
 
 
@@ -94,6 +96,15 @@ def CreateLAMMPSTestCase(testcase_name, script_names):
             self.assertEqual(rc, 0)
         return test_parallel_omp_run
 
+    def test_serial_valgrind(name, script_name):
+        supp_path = os.path.join(LAMMPS_DIR, 'tools', 'valgrind', 'lammps.supp')
+        valgrind_exec = ["valgrind", "--leak-check=full", "--xml=yes", "--xml-file=" + name + ".memcheck", "--suppressions=" + supp_path]
+
+        def test_serial_valgrind_run(self):
+            rc = self.run_script(script_name,launcher=valgrind_exec)
+            self.assertEqual(rc, 0)
+        return test_serial_valgrind_run
+
     methods = {"setUp": setUp}
 
     for script_name in script_names:
@@ -101,6 +112,7 @@ def CreateLAMMPSTestCase(testcase_name, script_names):
         methods["test_" + name + "_serial"] = test_serial(script_name)
         methods["test_" + name + "_parallel"] = test_parallel(script_name)
         methods["test_" + name + "_parallel_omp"] = test_parallel_omp(script_name)
+        methods["test_" + name + "_serial_valgrind"] = test_serial_valgrind(name, script_name)
 
     return type(testcase_name.title() + "TestCase", (LAMMPSTestCase, unittest.TestCase), methods)
 
