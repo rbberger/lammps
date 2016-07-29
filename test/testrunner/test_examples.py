@@ -99,6 +99,7 @@ def CreateLAMMPSTestCase(testcase_name, script_names):
     def test_serial_valgrind(name, script_name):
         supp_path = os.path.join(LAMMPS_DIR, 'tools', 'valgrind', 'lammps.supp')
         valgrind_exec = ["valgrind", "--leak-check=full", "--xml=yes", "--xml-file=" + name + ".memcheck", "--suppressions=" + supp_path]
+        valgrind_exec += ["--suppressions=/usr/share/openmpi/openmpi-valgrind.supp"]
 
         def test_serial_valgrind_run(self):
             rc = self.run_script(script_name,launcher=valgrind_exec)
