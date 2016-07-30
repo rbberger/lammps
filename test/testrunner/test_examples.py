@@ -26,50 +26,13 @@ class LAMMPSTestCase:
 
         exe = launcher + [LAMMPS_BINARY]
 
-        if nprocs > 1:
+        if nprocs > 1 and nthreads > 1:
+            return call(["mpirun", "-np", str(nprocs)] + exe + ["-sf", "omp", "-pk", "omp", str(nthreads),  "-in", script_name] + output_options, cwd=self.cwd)
+        elif nprocs > 1:
             return call(["mpirun", "-np", str(nprocs)] + exe + ["-in", script_name] + output_options, cwd=self.cwd)
         elif nthreads > 1:
-            return call(["mpirun", "-np", str(nprocs)] + exe + ["-sf", "omp", "-pk", "omp", str(nthreads),  "-in", script_name] + output_options, cwd=self.cwd)
+            return call([exe + ["-sf", "omp", "-pk", "omp", str(nthreads),  "-in", script_name] + output_options, cwd=self.cwd)
         return call(exe + ["-in", script_name] + output_options, cwd=self.cwd)
-
-
-
-
-# One tedious way of defining test cases is to fully define each test case as a class
-# The benefit being to customize each test individually, or marking individual tests for being skipped.
-
-
-# class BalanceTestCase(LAMMPSTestCase, unittest.TestCase):
-#     def setUp(self):
-#         self.cwd = os.path.join(LAMMPS_DIR, "examples", 'balance')
-#
-#     def test_balance_serial(self):
-#         rc = self.run_script("in.balance")
-#         self.assertEqual(rc, 0)
-#
-#     def test_balance_parallel(self):
-#         rc = self.run_script("in.balance", nprocs=4)
-#         self.assertEqual(rc, 0)
-#
-#     def test_balance_bond_fast_serial(self):
-#         rc = self.run_script("in.balance.bond.fast")
-#         self.assertEqual(rc, 0)
-#
-#     @unittest.skip("Randomly crashes")
-#     def test_balance_bond_fast_parallel(self):
-#         rc = self.run_script("in.balance.bond.fast", nprocs=4)
-#         self.assertEqual(rc, 0)
-#
-#     def test_balance_bond_slow_serial(self):
-#         rc = self.run_script("in.balance.bond.slow")
-#         self.assertEqual(rc, 0)
-#
-#     def test_balance_bond_slow_parallel(self):
-#         rc = self.run_script("in.balance.bond.slow", nprocs=4)
-#         self.assertEqual(rc, 0)
-
-# To save typing and quickly set this up, I've created a helper function to generate the
-# boilerplate code quickly
 
 
 def CreateLAMMPSTestCase(testcase_name, script_names):
@@ -117,30 +80,17 @@ def CreateLAMMPSTestCase(testcase_name, script_names):
 
     return type(testcase_name.title() + "TestCase", (LAMMPSTestCase, unittest.TestCase), methods)
 
-# This makes simple test case definitions much easier:
 
-# BodyTestCase = CreateLAMMPSTestCase("body", ["in.body"])
-# ColloidTestCase = CreateLAMMPSTestCase("colloid", ["in.colloid"])
-# CombTestCase = CreateLAMMPSTestCase("comb", ["in.comb.Cu", "in.comb.Cu2O.elastic", "in.comb.HfO2",
-#                                              "in.comb.Si", "in.comb.Si.elastic", "in.comb3"])
-# CrackTestCase = CreateLAMMPSTestCase("crack", ["in.crack"])
-# FlowTestCase = CreateLAMMPSTestCase("flow", ["in.flow.couette", "in.flow.pois"])
-# FrictionTestCase = CreateLAMMPSTestCase("friction", ["in.friction"])
-# HugoniostatTestCase = CreateLAMMPSTestCase("hugoniostat", ["in.hugoniostat"])
-# IndentTestCase = CreateLAMMPSTestCase("indent", ["in.indent", "in.indent.min"])
-# MeltTestCase = CreateLAMMPSTestCase("melt", ["in.melt"])
-# MinTestCase = CreateLAMMPSTestCase("min", ["in.min", "in.min.box"])
-# ObstacleTestCase = CreateLAMMPSTestCase("obstacle", ["in.obstacle"])
-# PeptideTestCase = CreateLAMMPSTestCase("peptide", ["in.peptide"])
+def SkipTest(cls, func_name, reason):
+    """ utility function to skip a specific test for a reason """
+    setattr(cls, func_name, unittest.skip(reason)(getattr(cls, func_name)))
 
 
-# Last, but not least, I'm lazy... so I'll collect all the script files and generate the tests
-# automatically by a recursive search and skipping a selection of folders
+# collect all the script files and generate the tests automatically by a recursive search and
+# skipping a selection of folders
 
 examples_dir = os.path.join(LAMMPS_DIR, 'examples')
 
-# skipping "balance" to not redefine it (see above)
-# everything else I still have to test myself or needs adjustment (e.g. number of timesteps)
 skip_list = ['accelerate', 'hugoniostat', 'kim', 'neb', 'python', 'reax', 'rerun', 'tad']
 
 for name in os.listdir(examples_dir):
@@ -155,9 +105,6 @@ for name in os.listdir(examples_dir):
     if name.islower() and os.path.isdir(path):
         script_names = map(os.path.basename, glob.glob(os.path.join(path, 'in.*')))
         vars()[name.title() + "TestCase"] = CreateLAMMPSTestCase(name, script_names)
-
-def SkipTest(cls, func_name, reason):
-    setattr(cls, func_name, unittest.skip(reason)(getattr(cls, func_name)))
 
 SkipTest(CombTestCase, "test_comb3_parallel_omp", "comb3 currently not supported by USER-OMP")
 SkipTest(BalanceTestCase, "test_balance_bond_fast_parallel", "Crashes randomly")
