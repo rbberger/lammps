@@ -8,31 +8,7 @@ __email__ = "richard.berger@temple.edu"
 import unittest
 import os
 import glob
-from subprocess import call
-
-# Before running any tests these two environment variables must be set
-
-LAMMPS_DIR=os.environ['LAMMPS_DIR']          # full path of LAMMPS main directory
-LAMMPS_BINARY=os.environ['LAMMPS_BINARY']    # full path of LAMMPS binary being tested
-
-
-class LAMMPSTestCase:
-    """ Mixin class for each LAMMPS test case. Defines utility function to run in serial or parallel"""
-    def run_script(self, script_name, nprocs=1, nthreads=1, screen=True, launcher=[]):
-        if screen:
-            output_options = []
-        else:
-            output_options = ["-screen", "none"]
-
-        exe = launcher + [LAMMPS_BINARY]
-
-        if nprocs > 1 and nthreads > 1:
-            return call(["mpirun", "-np", str(nprocs)] + exe + ["-sf", "omp", "-pk", "omp", str(nthreads),  "-in", script_name] + output_options, cwd=self.cwd)
-        elif nprocs > 1:
-            return call(["mpirun", "-np", str(nprocs)] + exe + ["-in", script_name] + output_options, cwd=self.cwd)
-        elif nthreads > 1:
-            return call([exe + ["-sf", "omp", "-pk", "omp", str(nthreads),  "-in", script_name] + output_options, cwd=self.cwd)
-        return call(exe + ["-in", script_name] + output_options, cwd=self.cwd)
+from lammps_testing import LAMMPSTestCase, SkipTest, LAMMPS_DIR
 
 
 def CreateLAMMPSTestCase(testcase_name, script_names):
