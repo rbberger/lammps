@@ -14,7 +14,7 @@ LAMMPS_BINARY=os.environ['LAMMPS_BINARY']    # full path of LAMMPS binary being 
 
 class LAMMPSTestCase:
     """ Mixin class for each LAMMPS test case. Defines utility function to run in serial or parallel"""
-    def run_script(self, script_name, nprocs=1, nthreads=1, screen=True, log=None, launcher=[], force_openmp=True, force_mpi=True):
+    def run_script(self, script_name, nprocs=1, nthreads=1, screen=True, log=None, launcher=[], force_openmp=False, force_mpi=False):
         if screen:
             output_options = []
         else:
