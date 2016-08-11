@@ -57,11 +57,6 @@ def CreateLAMMPSTestCase(testcase_name, script_names):
     return type(testcase_name.title() + "TestCase", (LAMMPSTestCase, unittest.TestCase), methods)
 
 
-def SkipTest(cls, func_name, reason):
-    """ utility function to skip a specific test for a reason """
-    setattr(cls, func_name, unittest.skip(reason)(getattr(cls, func_name)))
-
-
 # collect all the script files and generate the tests automatically by a recursive search and
 # skipping a selection of folders
 
