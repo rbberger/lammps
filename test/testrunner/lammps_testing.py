@@ -3,6 +3,7 @@ from __future__ import print_function
 __author__ = 'Richard Berger'
 __email__ = "richard.berger@temple.edu"
 
+import unittest
 import os
 import sys
 from subprocess import call
