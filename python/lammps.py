@@ -512,11 +512,13 @@ class PyLammps(object):
     return vars
 
   def eval(self, expr):
-    value = self.lmp_print('"$(%s)"' % expr).strip()
     try:
+      value = self.lmp_print('"$(%s)"' % expr).strip()
       return float(value)
     except ValueError:
       return value
+    except AttributeError:
+      return None
 
   def _split_values(self, line):
     return [x.strip() for x in line.split(',')]
