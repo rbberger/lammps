@@ -55,8 +55,6 @@ ComputeAngleLocal::ComputeAngleLocal(LAMMPS *lmp, int narg, char **arg) :
   }
 
   nmax = 0;
-  vector = NULL;
-  array = NULL;
 }
 
 /* ---------------------------------------------------------------------- */

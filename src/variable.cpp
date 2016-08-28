@@ -710,6 +710,7 @@ int Variable::next(int narg, char **arg)
 
 int Variable::find(char *name)
 {
+  if(name==NULL) return -1;
   for (int i = 0; i < nvar; i++)
     if (strcmp(name,names[i]) == 0) return i;
   return -1;
@@ -801,6 +802,19 @@ char *Variable::pythonstyle(char *name, char *funcname)
 int Variable::internalstyle(int ivar)
 {
   if (style[ivar] == INTERNAL) return 1;
+  return 0;
+}
+
+/* ----------------------------------------------------------------------
+   return 1 if variable is INDEX or WORLD or STRING or SCALARFILE, 0 if not
+   this is used to discriminate between variables that return a pointer to
+   the stored string and others that do evaluations or return numbers.
+------------------------------------------------------------------------- */
+
+int Variable::stringstyle(int ivar)
+{
+  if (style[ivar] == INDEX || style[ivar] == WORLD
+      || style[ivar] == STRING || style[ivar] == SCALARFILE) return 1;
   return 0;
 }
 
