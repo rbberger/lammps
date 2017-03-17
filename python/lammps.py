@@ -872,3 +872,95 @@ class IPyLammps(PyLammps):
   def video(self, filename):
     from IPython.display import HTML
     return HTML("<video controls><source src=\"" + filename + "\"></video>")
+
+class AvgChunkFile:
+  def __init__(self, filename):
+    with open(filename, 'rt') as f:
+      timestep = None
+      chunks_read = 0
+
+      self.timesteps = []
+      self.total_count = []
+      self.chunks = []
+
+      for lineno, line in enumerate(f):
+        if lineno == 0:
+          if not line.startswith("# Chunk-averaged data for fix"):
+            raise Exception("Chunk data reader only supports default avg/chunk headers!")
+          parts = line.split()
+          fix_name = parts[5]
+          group_name = parts[8]
+          continue
+        elif lineno == 1:
+          if not line.startswith("# Timestep Number-of-chunks Total-count"):
+            raise Exception("Chunk data reader only supports default avg/chunk headers!")
+          continue
+        elif lineno == 2:
+          if not line.startswith("#"):
+            raise Exception("Chunk data reader only supports default avg/chunk headers!")
+          columns = line.split()[1:]
+          ndim = line.count("Coord")
+          compress = 'OrigID' in line
+          if ndim > 0:
+            coord_start = columns.index("Coord1")
+            coord_end   = columns.index("Coord%d" % ndim)
+            ncount_start = coord_end + 1
+            data_start = ncount_start + 1
+          else:
+            coord_start = None
+            coord_end = None
+            ncount_start = 2
+            data_start = 3
+          continue
+
+        parts = line.split()
+
+        if timestep is None:
+          timestep = int(parts[0])
+          num_chunks = int(parts[1])
+          total_count = float(parts[2])
+
+          self.timesteps.append(timestep)
+
+          for i in range(num_chunks):
+            self.chunks.append({
+              'coord' : [],
+              'ncount' : []
+            })
+        elif chunks_read < num_chunks:
+          chunk = int(parts[0])
+          ncount = float(parts[ncount_start])
+
+          if compress:
+            chunk_id = int(parts[1])
+          else:
+            chunk_id = chunk
+
+          current = self.chunks[chunk_id - 1]
+          current['id'] = chunk_id
+          current['ncount'].append(ncount)
+
+          if ndim > 0:
+            coord = tuple(map(float, parts[coord_start:coord_end+1]))
+            current['coord'].append(coord)
+
+          for i, data_column in list(enumerate(columns))[data_start:]:
+            value = float(parts[i])
+
+            if data_column in current:
+              current[data_column].append(value)
+            else:
+              current[data_column] = [value]
+
+          chunks_read += 1
+          assert (chunk == chunks_read)
+        else:
+          # do not support changing number of chunks
+          assert(num_chunks == int(parts[1]))
+
+          timestep = int(parts[0])
+          total_count = float(parts[2])
+          chunks_read = 0
+
+          self.timesteps.append(timestep)
+          self.total_count.append(total_count)
