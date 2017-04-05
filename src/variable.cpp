@@ -34,7 +34,7 @@
 #include "random_mars.h"
 #include "math_const.h"
 #include "atom_masks.h"
-#include "python_wrapper.h"
+#include "python.h"
 #include "memory.h"
 #include "info.h"
 #include "error.h"
@@ -111,10 +111,6 @@ Variable::Variable(LAMMPS *lmp) : Pointers(lmp)
   precedence[MULTIPLY] = precedence[DIVIDE] = precedence[MODULO] = 6;
   precedence[CARAT] = 7;
   precedence[UNARY] = precedence[NOT] = 8;
-
-  // Python wrapper, real or dummy
-
-  python = new Python(lmp);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -144,7 +140,6 @@ Variable::~Variable()
   delete randomequal;
   delete randomatom;
 
-  delete python;
 }
 
 /* ----------------------------------------------------------------------

@@ -11,8 +11,10 @@
    See the README file in the top-level LAMMPS directory.
 ------------------------------------------------------------------------- */
 
+#ifndef LMP_PYTHON3
+
 #include <Python.h>
-#include "python.h"
+#include "python2.h"
 #include "force.h"
 #include "input.h"
 #include "variable.h"
@@ -27,9 +29,9 @@ enum{NONE,INT,DOUBLE,STRING,PTR};
 
 /* ---------------------------------------------------------------------- */
 
-Python::Python(LAMMPS *lmp) : Pointers(lmp)
+Python2::Python2(LAMMPS *lmp) : Python(lmp)
 {
-  python_exists = 1;
+  python_exists = true;
 
   pyMain = NULL;
 
@@ -41,7 +43,7 @@ Python::Python(LAMMPS *lmp) : Pointers(lmp)
 
 /* ---------------------------------------------------------------------- */
 
-Python::~Python()
+Python2::~Python2()
 {
   // clean up
 
@@ -61,7 +63,7 @@ Python::~Python()
 
 /* ---------------------------------------------------------------------- */
 
-void Python::command(int narg, char **arg)
+void Python2::command(int narg, char **arg)
 {
   if (narg < 2) error->all(FLERR,"Invalid python command");
 
@@ -204,7 +206,7 @@ void Python::command(int narg, char **arg)
 
 /* ------------------------------------------------------------------ */
 
-void Python::invoke_function(int ifunc, char *result)
+void Python2::invoke_function(int ifunc, char *result)
 {
   PyObject *pValue;
   char *str;
@@ -275,7 +277,7 @@ void Python::invoke_function(int ifunc, char *result)
 
 /* ------------------------------------------------------------------ */
 
-int Python::find(char *name)
+int Python2::find(char *name)
 {
   for (int i = 0; i < nfunc; i++)
     if (strcmp(name,pfuncs[i].name) == 0) return i;
@@ -284,7 +286,7 @@ int Python::find(char *name)
 
 /* ------------------------------------------------------------------ */
 
-int Python::variable_match(char *name, char *varname, int numeric)
+int Python2::variable_match(char *name, char *varname, int numeric)
 {
   int ifunc = find(name);
   if (ifunc < 0) return -1;
@@ -296,14 +298,14 @@ int Python::variable_match(char *name, char *varname, int numeric)
 
 /* ------------------------------------------------------------------ */
 
-char *Python::long_string(int ifunc)
+char *Python2::long_string(int ifunc)
 {
   return pfuncs[ifunc].longstr;
 }
 
 /* ------------------------------------------------------------------ */
 
-int Python::create_entry(char *name)
+int Python2::create_entry(char *name)
 {
   // ifunc = index to entry by name in pfuncs vector, can be old or new
   // free old vectors if overwriting old pfunc
@@ -413,7 +415,7 @@ int Python::create_entry(char *name)
 
 /* ------------------------------------------------------------------ */
 
-void Python::deallocate(int i)
+void Python2::deallocate(int i)
 {
   delete [] pfuncs[i].itype;
   delete [] pfuncs[i].ivarflag;
@@ -425,3 +427,5 @@ void Python::deallocate(int i)
   delete [] pfuncs[i].ovarname;
   delete [] pfuncs[i].longstr;
 }
+
+#endif

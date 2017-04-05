@@ -19,46 +19,39 @@
 namespace LAMMPS_NS {
 
 class Python : protected Pointers {
- public:
-  int python_exists;
+public:
+  bool python_exists;
 
   Python(class LAMMPS *);
-  ~Python();
-  void command(int, char **);
-  void invoke_function(int, char *);
-  int find(char *);
-  int variable_match(char *, char *, int);
-  char *long_string(int);
+  virtual ~Python();
+  virtual void command(int, char **) = 0;
+  virtual void invoke_function(int, char *) = 0;
+  virtual int find(char *) = 0;
+  virtual int variable_match(char *, char *, int) = 0;
+  virtual char *long_string(int) = 0;
+};
 
- private:
-  int ninput,noutput,length_longstr;
-  char **istr;
-  char *ostr,*format;
-  void *pyMain;
-
-  struct PyFunc {
-    char *name;
-    int ninput,noutput;
-    int *itype,*ivarflag;
-    int *ivalue;
-    double *dvalue;
-    char **svalue;
-    int otype;
-    char *ovarname;
-    char *longstr;
-    int length_longstr;
-    void *pFunc;
-  };
-
-  PyFunc *pfuncs;
-  int nfunc;
-
-  int create_entry(char *);
-  void deallocate(int);
+class PythonDummy : Python {
+public:
+  PythonDummy(class LAMMPS *);
+  virtual ~PythonDummy();
+  virtual void command(int, char **);
+  virtual void invoke_function(int, char *);
+  virtual int find(char *);
+  virtual int variable_match(char *, char *, int);
+  virtual char *long_string(int);
 };
 
 }
 
+#endif
+
+#if LMP_PYTHON
+#include "python2.h"
+#elif LMP_PYTHON2
+#include "python2.h"
+#elif LMP_PYTHON3
+#include "python3.h"
 #endif
 
 /* ERROR/WARNING messages:
