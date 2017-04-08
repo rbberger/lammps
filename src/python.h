@@ -18,12 +18,9 @@
 
 namespace LAMMPS_NS {
 
-class Python : protected Pointers {
+class PythonInterface {
 public:
-  bool python_exists;
-
-  Python(class LAMMPS *);
-  virtual ~Python();
+  virtual ~PythonInterface();
   virtual void command(int, char **) = 0;
   virtual void invoke_function(int, char *) = 0;
   virtual int find(char *) = 0;
@@ -31,28 +28,28 @@ public:
   virtual char *long_string(int) = 0;
 };
 
-class PythonDummy : Python {
+class Python : protected Pointers {
 public:
-  PythonDummy(class LAMMPS *);
-  virtual ~PythonDummy();
-  virtual void command(int, char **);
-  virtual void invoke_function(int, char *);
-  virtual int find(char *);
-  virtual int variable_match(char *, char *, int);
-  virtual char *long_string(int);
+  Python(class LAMMPS *);
+  ~Python();
+
+  void command(int, char **);
+  void invoke_function(int, char *);
+  int find(char *);
+  int variable_match(char *, char *, int);
+  char *long_string(int);
+
+  bool is_enabled() const;
+
+private:
+  PythonInterface * impl;
+  void init();
 };
 
 }
 
 #endif
 
-#if LMP_PYTHON
-#include "python2.h"
-#elif LMP_PYTHON2
-#include "python2.h"
-#elif LMP_PYTHON3
-#include "python3.h"
-#endif
 
 /* ERROR/WARNING messages:
 

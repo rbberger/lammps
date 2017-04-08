@@ -11,9 +11,10 @@
    See the README file in the top-level LAMMPS directory.
 ------------------------------------------------------------------------- */
 
-#ifndef LMP_PYTHON3
-
 #include <Python.h>
+
+#if PY_MAJOR_VERSION == 2
+
 #include "python2.h"
 #include "force.h"
 #include "input.h"
@@ -29,10 +30,8 @@ enum{NONE,INT,DOUBLE,STRING,PTR};
 
 /* ---------------------------------------------------------------------- */
 
-Python2::Python2(LAMMPS *lmp) : Python(lmp)
+Python2::Python2(LAMMPS *lmp) : Pointers(lmp)
 {
-  python_exists = true;
-
   pyMain = NULL;
 
   // pfuncs stores interface info for each Python function

@@ -18,10 +18,10 @@
 
 namespace LAMMPS_NS {
 
-class Python2 : public Python {
+class Python2 : public PythonInterface, protected Pointers {
  public:
   Python2(class LAMMPS *);
-  ~Python2();
+  virtual ~Python2();
   void command(int, char **);
   void invoke_function(int, char *);
   int find(char *);

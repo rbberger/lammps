@@ -642,15 +642,7 @@ void LAMMPS::create()
   update = new Update(this);  // must be after output, force, neighbor
   timer = new Timer(this);
 
-#ifdef LMP_PYTHON
-  python = new Python2(this);
-#elif LMP_PYTHON2
-  python = new Python2(this);
-#elif LMP_PYTHON3
-  python = new Python3(this);
-#else
-  python = new PythonDummy(this);
-#endif
+  python = new Python(this);
 }
 
 /* ----------------------------------------------------------------------

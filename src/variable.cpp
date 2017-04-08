@@ -459,7 +459,7 @@ void Variable::set(int narg, char **arg)
 
   } else if (strcmp(arg[1],"python") == 0) {
     if (narg != 3) error->all(FLERR,"Illegal variable command");
-    if (!python->python_exists)
+    if (!python->is_enabled())
       error->all(FLERR,"LAMMPS is not built with Python embedded");
     int ivar = find(arg[0]);
     if (ivar >= 0) {
@@ -730,7 +730,7 @@ void Variable::set_arrays(int i)
 
 void Variable::python_command(int narg, char **arg)
 {
-  if (!python->python_exists)
+  if (!python->is_enabled())
     error->all(FLERR,"LAMMPS is not built with Python embedded");
   python->command(narg,arg);
 }

@@ -18,62 +18,100 @@
 #include "memory.h"
 #include "error.h"
 
+#if LMP_PYTHON
+#if PY_MAJOR_VERSION == 2
+#include "python2.h"
+#elif PY_MAJOR_VERSION == 3
+#include "python3.h"
+#endif
+#endif
+
 using namespace LAMMPS_NS;
 
 /* ---------------------------------------------------------------------- */
 
 Python::Python(LAMMPS *lmp) : Pointers(lmp)
 {
+  // implementation of Python interface is only loaded on demand
+  // and only if PYTHON package has been installed and compiled into binary
+  impl = NULL;
 }
 
 /* ---------------------------------------------------------------------- */
 
 Python::~Python()
 {
+  delete impl;
 }
 
 /* ---------------------------------------------------------------------- */
 
-PythonDummy::PythonDummy(LAMMPS *lmp) : Python(lmp)
-{
-  python_exists = false;
-}
-
-/* ---------------------------------------------------------------------- */
-
-PythonDummy::~PythonDummy()
+PythonInterface::~PythonInterface()
 {
 }
 
 /* ---------------------------------------------------------------------- */
 
-void PythonDummy::command(int narg, char **arg)
+void Python::init()
 {
+#if LMP_PYTHON
+#if PY_MAJOR_VERSION == 2
+  impl = new Python2(lmp);
+#elif PY_MAJOR_VERSION == 3
+  impl = new Python3(lmp);
+#else
+  error->all(FLERR,"Unsupported Python version!");
+#endif
+#else
+  error->all(FLERR,"Python support missing! Compile with PYTHON package installed!");
+#endif
+}
+
+/* ---------------------------------------------------------------------- */
+bool Python::is_enabled() const {
+#if LMP_PYTHON
+  return true;
+#else
+  return false;
+#endif
+}
+
+/* ---------------------------------------------------------------------- */
+
+void Python::command(int narg, char **arg)
+{
+  if(!impl) init();
+  impl->command(narg, arg);
 }
 
 /* ------------------------------------------------------------------ */
 
-void PythonDummy::invoke_function(int ifunc, char *result)
+void Python::invoke_function(int ifunc, char *result)
 {
+  if(!impl) init();
+  impl->invoke_function(ifunc, result);
 }
 
 /* ------------------------------------------------------------------ */
 
-int PythonDummy::find(char *name)
+int Python::find(char *name)
 {
-  return 0;
+  if(!impl) init();
+  return impl->find(name);
 }
 
 /* ------------------------------------------------------------------ */
 
-int PythonDummy::variable_match(char *name, char *varname, int numeric)
+int Python::variable_match(char *name, char *varname, int numeric)
 {
-  return 0;
+  if(!impl) init();
+  return impl->variable_match(name, varname, numeric);
 }
 
 /* ------------------------------------------------------------------ */
 
-char *PythonDummy::long_string(int ifunc)
+char *Python::long_string(int ifunc)
 {
-  return NULL;
+  if(!impl) init();
+  return impl->long_string(ifunc);
 }
