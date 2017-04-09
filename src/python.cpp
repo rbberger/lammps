@@ -11,6 +11,7 @@
    See the README file in the top-level LAMMPS directory.
 ------------------------------------------------------------------------- */
 
+
 #include "python.h"
 #include "force.h"
 #include "input.h"
@@ -19,6 +20,7 @@
 #include "error.h"
 
 #if LMP_PYTHON
+#include <Python.h>
 #if PY_MAJOR_VERSION == 2
 #include "python2.h"
 #elif PY_MAJOR_VERSION == 3

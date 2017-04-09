@@ -68,6 +68,7 @@ LAMMPS::LAMMPS(int narg, char **arg, MPI_Comm communicator)
   error = new Error(this);
   universe = new Universe(this,communicator);
   output = NULL;
+  python = NULL;
 
   screen = NULL;
   logfile = NULL;
@@ -763,6 +764,9 @@ void LAMMPS::destroy()
 
   delete timer;
   timer = NULL;
+
+  delete python;
+  python = NULL;
 }
 
 /* ----------------------------------------------------------------------

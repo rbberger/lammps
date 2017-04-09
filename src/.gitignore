@@ -848,6 +848,8 @@
 /prd.h
 /python2.cpp
 /python2.h
+/python3.cpp
+/python3.h
 /reader_molfile.cpp
 /reader_molfile.h
 /reaxc_allocate.cpp
