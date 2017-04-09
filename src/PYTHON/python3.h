@@ -29,6 +29,7 @@ class Python3 : public PythonInterface, protected Pointers {
   char *long_string(int);
 
  private:
+  bool external_interpreter;
   int ninput,noutput,length_longstr;
   char **istr;
   char *ostr,*format;
