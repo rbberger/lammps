@@ -14,46 +14,16 @@
 #ifndef LMP_PYTHON3_H
 #define LMP_PYTHON3_H
 
-#include "python.h"
+#include "python_base.h"
 
 namespace LAMMPS_NS {
 
-class Python3 : public PythonInterface, protected Pointers {
+class Python3 : public PythonBase {
  public:
   Python3(class LAMMPS *);
   virtual ~Python3();
-  void command(int, char **);
+
   void invoke_function(int, char *);
-  int find(char *);
-  int variable_match(char *, char *, int);
-  char *long_string(int);
-
- private:
-  bool external_interpreter;
-  int ninput,noutput,length_longstr;
-  char **istr;
-  char *ostr,*format;
-  void *pyMain;
-
-  struct PyFunc {
-    char *name;
-    int ninput,noutput;
-    int *itype,*ivarflag;
-    int *ivalue;
-    double *dvalue;
-    char **svalue;
-    int otype;
-    char *ovarname;
-    char *longstr;
-    int length_longstr;
-    void *pFunc;
-  };
-
-  PyFunc *pfuncs;
-  int nfunc;
-
-  int create_entry(char *);
-  void deallocate(int);
 };
 
 }

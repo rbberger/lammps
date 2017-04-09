@@ -11,18 +11,53 @@
    See the README file in the top-level LAMMPS directory.
 ------------------------------------------------------------------------- */
 
-#ifndef LMP_PYTHON2_H
-#define LMP_PYTHON2_H
+#ifndef LMP_PYTHON_BASE_H
+#define LMP_PYTHON_BASE_H
 
-#include "python_base.h"
+#include "python.h"
 
 namespace LAMMPS_NS {
 
-class Python2 : public PythonBase {
+enum{NONE,INT,DOUBLE,STRING,PTR};
+
+#define VALUELENGTH 64               // also in variable.cpp
+
+struct PyFunc {
+  char *name;
+  int ninput,noutput;
+  int *itype,*ivarflag;
+  int *ivalue;
+  double *dvalue;
+  char **svalue;
+  int otype;
+  char *ovarname;
+  char *longstr;
+  int length_longstr;
+  void *pFunc;
+};
+
+class PythonBase : public PythonInterface, protected Pointers {
  public:
-  Python2(class LAMMPS *);
-  virtual ~Python2();
-  void invoke_function(int, char *);
+  PythonBase(class LAMMPS *);
+  virtual ~PythonBase();
+  void command(int, char **);
+  void invoke_function(int, char *) = 0;
+  int find(char *);
+  int variable_match(char *, char *, int);
+  char *long_string(int);
+
+ protected:
+  bool external_interpreter;
+  int ninput,noutput,length_longstr;
+  char **istr;
+  char *ostr,*format;
+  void *pyMain;
+
+  PyFunc *pfuncs;
+  int nfunc;
+
+  int create_entry(char *);
+  void deallocate(int);
 };
 
 }
