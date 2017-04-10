@@ -22,10 +22,9 @@ class PythonInterface {
 public:
   virtual ~PythonInterface();
   virtual void command(int, char **) = 0;
-  virtual void invoke_function(int, char *) = 0;
-  virtual int find(char *) = 0;
-  virtual int variable_match(char *, char *, int) = 0;
-  virtual char *long_string(int) = 0;
+  virtual void invoke_function(class PyFunc *, char *) = 0;
+  virtual class PyFunc * find(char *) = 0;
+  virtual class PyFunc * variable_match(char *, char *, int) = 0;
 };
 
 class Python : protected Pointers {
@@ -34,10 +33,9 @@ public:
   ~Python();
 
   void command(int, char **);
-  void invoke_function(int, char *);
-  int find(char *);
-  int variable_match(char *, char *, int);
-  char *long_string(int);
+  void invoke_function(class PyFunc*, char *);
+  class PyFunc* find(char *);
+  class PyFunc* variable_match(char *, char *, int);
 
   bool is_enabled() const;
 
@@ -50,6 +48,16 @@ private:
 
 #endif
 
+#if LMP_PYTHON
+#include "python_base.h"
+#else
+namespace LAMMPS_NS {
+  struct PyFunc {
+    bool returns_long_string() { return false; }
+    const char* get_long_string() { return NULL; }
+  };
+}
+#endif
 
 /* ERROR/WARNING messages:
 

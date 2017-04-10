@@ -744,8 +744,8 @@ int Variable::equalstyle(int ivar)
 {
   if (style[ivar] == EQUAL || style[ivar] == INTERNAL) return 1;
   if (style[ivar] == PYTHON) {
-    int ifunc = python->variable_match(data[ivar][0],names[ivar],1);
-    if (ifunc < 0) return 0;
+    PyFunc* pfunc = python->variable_match(data[ivar][0],names[ivar],1);
+    if (!pfunc) return 0;
     else return 1;
   }
   return 0;
@@ -865,15 +865,16 @@ char *Variable::retrieve(char *name)
     strcpy(data[ivar][1],result);
     str = data[ivar][1];
   } else if (style[ivar] == PYTHON) {
-    int ifunc = python->variable_match(data[ivar][0],names[ivar],0);
-    if (ifunc < 0)
+    PyFunc* pfunc = python->variable_match(data[ivar][0],names[ivar],0);
+    if (!pfunc)
       error->all(FLERR,"Python variable does not match Python function");
-    python->invoke_function(ifunc,data[ivar][1]);
-    str = data[ivar][1];
-    // if Python func returns a string longer than VALUELENGTH
-    // then the Python class stores the result, query it via long_string()
-    char *strlong = python->long_string(ifunc);
-    if (strlong) str = strlong;
+    python->invoke_function(pfunc,data[ivar][1]);
+
+    if(pfunc->returns_long_string()) {
+      str = const_cast<char*>(pfunc->get_long_string());
+    } else {
+      str = data[ivar][1];
+    }
   } else if (style[ivar] == INTERNAL) {
     sprintf(data[ivar][0],"%.15g",dvalue[ivar]);
     str = data[ivar][0];
@@ -902,9 +903,9 @@ double Variable::compute_equal(int ivar)
   if (style[ivar] == EQUAL) value = evaluate(data[ivar][0],NULL);
   else if (style[ivar] == INTERNAL) value = dvalue[ivar];
   else if (style[ivar] == PYTHON) {
-    int ifunc = python->find(data[ivar][0]);
-    if (ifunc < 0) error->all(FLERR,"Python variable has no function");
-    python->invoke_function(ifunc,data[ivar][1]);
+    PyFunc* pfunc = python->find(data[ivar][0]);
+    if (!pfunc) error->all(FLERR,"Python variable has no function");
+    python->invoke_function(pfunc,data[ivar][1]);
     value = atof(data[ivar][1]);
   }
 

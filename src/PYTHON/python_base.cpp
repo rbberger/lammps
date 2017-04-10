@@ -11,8 +11,6 @@
    See the README file in the top-level LAMMPS directory.
 ------------------------------------------------------------------------- */
 
-#include <Python.h>
-
 #include "python_base.h"
 #include "force.h"
 #include "input.h"
@@ -21,6 +19,23 @@
 #include "error.h"
 
 using namespace LAMMPS_NS;
+using namespace std;
+
+// Wrap API changes between Python 2 and 3 using macros
+#if PY_MAJOR_VERSION == 2
+#define PY_INT_FROM_LONG(X) PyInt_FromLong(X)
+#define PY_INT_AS_LONG(X) PyInt_AsLong(X)
+#define PY_STRING_FROM_STRING(X) PyString_FromString(X)
+#define PY_VOID_POINTER(X) PyCObject_FromVoidPtr((void *) X, NULL)
+#define PY_STRING_AS_STRING(X) PyString_AsString(X)
+
+#elif PY_MAJOR_VERSION == 3
+#define PY_INT_FROM_LONG(X) PyLong_FromLong(X)
+#define PY_INT_AS_LONG(X) PyLong_AsLong(X)
+#define PY_STRING_FROM_STRING(X) PyUnicode_FromString(X)
+#define PY_VOID_POINTER(X) PyCapsule_New((void *) X, NULL, NULL)
+#define PY_STRING_AS_STRING(X) PyUnicode_AsUTF8(X)
+#endif
 
 /* ---------------------------------------------------------------------- */
 
@@ -28,26 +43,28 @@ PythonBase::PythonBase(LAMMPS *lmp) : Pointers(lmp)
 {
   pyMain = NULL;
 
-  // pfuncs stores interface info for each Python function
+  // one-time initialization of Python interpreter
+  // pymain stores pointer to main module
 
-  nfunc = 0;
-  pfuncs = NULL;
+  external_interpreter = Py_IsInitialized();
 
-  external_interpreter = false;
+  Py_Initialize();
+  PyEval_InitThreads();
+  PyGILState_STATE gstate = PyGILState_Ensure();
+
+  pyMain = PyImport_AddModule("__main__");
+  if (!pyMain) error->all(FLERR,"Could not initialize embedded Python");
 }
 
 /* ---------------------------------------------------------------------- */
 
 PythonBase::~PythonBase()
 {
-  // clean up
   PyGILState_STATE gstate = PyGILState_Ensure();
 
-  for (int i = 0; i < nfunc; i++) {
-    delete [] pfuncs[i].name;
-    deallocate(i);
-    PyObject *pFunc = (PyObject *) pfuncs[i].pFunc;
-    Py_XDECREF(pFunc);
+  for(map<string, PyFunc*>::iterator it = functions.begin(); it != functions.end(); ++it) {
+    delete it->second;
+    it->second = NULL;
   }
 
   // shutdown Python interpreter
@@ -58,8 +75,6 @@ PythonBase::~PythonBase()
   else {
     PyGILState_Release(gstate);
   }
-
-  memory->sfree(pfuncs);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -71,18 +86,18 @@ void PythonBase::command(int narg, char **arg)
   // if invoke is only keyword, invoke the previously defined function
 
   if (narg == 2 && strcmp(arg[1],"invoke") == 0) {
-    int ifunc = find(arg[0]);
-    if (ifunc < 0) error->all(FLERR,"Python invoke of undefined function");
+    PyFunc * pfunc = find(arg[0]);
+    if (!pfunc) error->all(FLERR,"Python invoke of undefined function");
 
     char *str = NULL;
     if (noutput) {
-      str = input->variable->pythonstyle(pfuncs[ifunc].ovarname,
-                                         pfuncs[ifunc].name);
+      str = input->variable->pythonstyle((char*)pfunc->ovarname.c_str(),
+                                         (char*)pfunc->name.c_str());
       if (!str)
         error->all(FLERR,"Python variable does not match Python function");
     }
 
-    invoke_function(ifunc,str);
+    invoke_function(pfunc, str);
     return;
   }
 
@@ -92,7 +107,6 @@ void PythonBase::command(int narg, char **arg)
   istr = NULL;
   ostr = NULL;
   format = NULL;
-  length_longstr = 0;
   char *pyfile = NULL;
   char *herestr = NULL;
   int existflag = 0;
@@ -147,24 +161,9 @@ void PythonBase::command(int narg, char **arg)
 
   // create or overwrite entry in pfuncs vector with name = arg[0]
 
-  int ifunc = create_entry(arg[0]);
+  PyFunc * pfunc = create_entry(arg[0]);
 
-  // one-time initialization of Python interpreter
-  // pymain stores pointer to main module
-  PyGILState_STATE gstate;
-
-  if (pyMain == NULL) {
-    external_interpreter = Py_IsInitialized();
-    Py_Initialize();
-    PyEval_InitThreads();
-    gstate = PyGILState_Ensure();
-
-    PyObject *pModule = PyImport_AddModule("__main__");
-    if (!pModule) error->all(FLERR,"Could not initialize embedded Python");
-    pyMain = (void *) pModule;
-  } else {
-    gstate = PyGILState_Ensure();
-  }
+  PyGILState_STATE gstate = PyGILState_Ensure();
 
   // send Python code to Python interpreter
   // file: read the file via PyRun_SimpleFile()
@@ -196,22 +195,22 @@ void PythonBase::command(int narg, char **arg)
     }
   }
 
-  // pFunc = function object for requested function
+  // pyFunc = function object for requested function
 
-  PyObject *pModule = (PyObject *) pyMain;
-  PyObject *pFunc = PyObject_GetAttrString(pModule,pfuncs[ifunc].name);
+  PyObject *pyModule = (PyObject *) pyMain;
+  PyObject *pyFunc = PyObject_GetAttrString(pyModule,pfunc->name.c_str());
 
-  if (!pFunc) {
+  if (!pyFunc) {
     PyGILState_Release(gstate);
     error->all(FLERR,"Could not find Python function");
   }
 
-  if (!PyCallable_Check(pFunc)) {
+  if (!PyCallable_Check(pyFunc)) {
     PyGILState_Release(gstate);
     error->all(FLERR,"Python function is not callable");
   }
 
-  pfuncs[ifunc].pFunc = (void *) pFunc;
+  pfunc->pyFunc = pyFunc;
 
   // clean-up input storage
 
@@ -223,53 +222,154 @@ void PythonBase::command(int narg, char **arg)
 
 /* ------------------------------------------------------------------ */
 
-int PythonBase::find(char *name)
+void PythonBase::invoke_function(PyFunc * pfunc, char *result)
 {
-  for (int i = 0; i < nfunc; i++)
-    if (strcmp(name,pfuncs[i].name) == 0) return i;
-  return -1;
+  PyGILState_STATE gstate = PyGILState_Ensure();
+
+  PyObject *pyFunc  = pfunc->pyFunc;
+  PyObject *pyValue = NULL;
+
+  // create Python tuple of input arguments
+
+  int ninput = pfunc->ninput;
+  PyObject *pArgs = PyTuple_New(ninput);
+
+  if (!pArgs) {
+    PyGILState_Release(gstate);
+    error->all(FLERR,"Could not create Python function arguments");
+  }
+
+  for (int i = 0; i < ninput; i++) {
+    int itype = pfunc->itype[i];
+    bool is_variable = pfunc->ivarflag[i];
+    char * str = NULL;
+
+    if(is_variable)
+    {
+      str = input->variable->retrieve((char*)pfunc->svalue[i].c_str());
+
+      if (!str) {
+        PyGILState_Release(gstate);
+        error->all(FLERR,"Could not evaluate Python function input variable");
+      }
+    }
+
+    switch(itype) {
+    case INT:
+      if (is_variable) {
+        pyValue = PY_INT_FROM_LONG(atoi(str));
+      } else {
+        pyValue = PY_INT_FROM_LONG(pfunc->ivalue[i]);
+      }
+      break;
+
+    case DOUBLE:
+      if (is_variable) {
+        pyValue = PyFloat_FromDouble(atof(str));
+      } else {
+        pyValue = PyFloat_FromDouble(pfunc->dvalue[i]);
+      }
+      break;
+
+    case STRING:
+      if (is_variable) {
+        pyValue = PY_STRING_FROM_STRING(str);
+      } else {
+        pyValue = PY_STRING_FROM_STRING(pfunc->svalue[i].c_str());
+      }
+      break;
+
+    case PTR:
+      pyValue = PY_VOID_POINTER(lmp);
+      break;
+    }
+    PyTuple_SetItem(pArgs,i,pyValue);
+  }
+
+  // call the Python function
+  // error check with one() since only some procs may fail
+
+  pyValue = PyObject_CallObject(pyFunc,pArgs);
+
+  if (!pyValue) {
+    PyGILState_Release(gstate);
+    error->one(FLERR,"Python function evaluation failed");
+  }
+
+  Py_DECREF(pArgs);
+
+  // function returned a value
+  // assign it to result string stored by python-style variable
+  // or if user specified a length, assign it to longstr
+
+  if (pfunc->noutput) {
+    int otype = pfunc->otype;
+    switch(otype) {
+    case INT:
+      sprintf(result,"%ld",PY_INT_AS_LONG(pyValue));
+      break;
+
+    case DOUBLE:
+      sprintf(result,"%.15g",PyFloat_AsDouble(pyValue));
+      break;
+
+    case STRING:
+    case LONG_STRING:
+      char *pystr = PY_STRING_AS_STRING(pyValue);
+    
+      if (otype == LONG_STRING) {
+        pfunc->longstr = string(pystr);
+      } else {
+        strncpy(result,pystr,VALUELENGTH-1);
+      }
+      break;
+    }
+    Py_DECREF(pyValue);
+  }
+
+  PyGILState_Release(gstate);
 }
 
 /* ------------------------------------------------------------------ */
 
-int PythonBase::variable_match(char *name, char *varname, int numeric)
+PyFunc * PythonBase::find(char *name)
 {
-  int ifunc = find(name);
-  if (ifunc < 0) return -1;
-  if (pfuncs[ifunc].noutput == 0) return -1;
-  if (strcmp(pfuncs[ifunc].ovarname,varname) != 0) return -1;
-  if (numeric && pfuncs[ifunc].otype == STRING) return -1;
-  return ifunc;
+  map<string, PyFunc*>::iterator it = functions.find(name);
+
+  if(it != functions.end()) {
+    return it->second;
+  }
+
+  return NULL;
 }
 
 /* ------------------------------------------------------------------ */
 
-char *PythonBase::long_string(int ifunc)
+PyFunc * PythonBase::variable_match(char *name, char *varname, int numeric)
 {
-  return pfuncs[ifunc].longstr;
+  PyFunc * pfunc = find(name);
+  if (!pfunc) return NULL;
+  if (pfunc->noutput == 0) return NULL;
+  if (strcmp(pfunc->ovarname.c_str(), varname) != 0) return NULL;
+  if (numeric && (pfunc->otype == STRING || pfunc->otype == LONG_STRING)) return NULL;
+  return pfunc;
 }
 
 /* ------------------------------------------------------------------ */
 
-int PythonBase::create_entry(char *name)
+PyFunc * PythonBase::create_entry(char *name)
 {
-  // ifunc = index to entry by name in pfuncs vector, can be old or new
-  // free old vectors if overwriting old pfunc
+  PyFunc * pfunc = new PyFunc(name, ninput, noutput);
 
-  int ifunc = find(name);
+  map<string, PyFunc*>::iterator it = functions.find(name);
 
-  if (ifunc < 0) {
-    ifunc = nfunc;
-    nfunc++;
-    pfuncs = (PyFunc *)
-      memory->srealloc(pfuncs,nfunc*sizeof(struct PyFunc),"python:pfuncs");
-    int n = strlen(name) + 1;
-    pfuncs[ifunc].name = new char[n];
-    strcpy(pfuncs[ifunc].name,name);
-  } else deallocate(ifunc);
-
-  pfuncs[ifunc].ninput = ninput;
-  pfuncs[ifunc].noutput = noutput;
+  if(it != functions.end())
+  {
+    delete it->second;
+    it->second = pfunc;
+  } else {
+    functions[name] = pfunc;
+  }
 
   if (!format && ninput+noutput)
     error->all(FLERR,"Invalid python command");
@@ -278,98 +378,120 @@ int PythonBase::create_entry(char *name)
 
   // process inputs as values or variables
 
-  pfuncs[ifunc].itype = new int[ninput];
-  pfuncs[ifunc].ivarflag = new int[ninput];
-  pfuncs[ifunc].ivalue = new int[ninput];
-  pfuncs[ifunc].dvalue = new double[ninput];
-  pfuncs[ifunc].svalue = new char*[ninput];
-
   for (int i = 0; i < ninput; i++) {
-    pfuncs[ifunc].svalue[i] = NULL;
     char type = format[i];
-    if (type == 'i') {
-      pfuncs[ifunc].itype[i] = INT;
-      if (strstr(istr[i],"v_") == istr[i]) {
-        pfuncs[ifunc].ivarflag[i] = 1;
-        int n = strlen(&istr[i][2]) + 1;
-        pfuncs[ifunc].svalue[i] = new char[n];
-        strcpy(pfuncs[ifunc].svalue[i],&istr[i][2]);
-      } else {
-        pfuncs[ifunc].ivarflag[i] = 0;
-        pfuncs[ifunc].ivalue[i] = force->inumeric(FLERR,istr[i]);
-      }
-    } else if (type == 'f') {
-      pfuncs[ifunc].itype[i] = DOUBLE;
-      if (strstr(istr[i],"v_") == istr[i]) {
-        pfuncs[ifunc].ivarflag[i] = 1;
-        int n = strlen(&istr[i][2]) + 1;
-        pfuncs[ifunc].svalue[i] = new char[n];
-        strcpy(pfuncs[ifunc].svalue[i],&istr[i][2]);
-      } else {
-        pfuncs[ifunc].ivarflag[i] = 0;
-        pfuncs[ifunc].dvalue[i] = force->numeric(FLERR,istr[i]);
-      }
-    } else if (type == 's') {
-      pfuncs[ifunc].itype[i] = STRING;
-      if (strstr(istr[i],"v_") == istr[i]) {
-        pfuncs[ifunc].ivarflag[i] = 1;
-        int n = strlen(&istr[i][2]) + 1;
-        pfuncs[ifunc].svalue[i] = new char[n];
-        strcpy(pfuncs[ifunc].svalue[i],&istr[i][2]);
-      } else {
-        pfuncs[ifunc].ivarflag[i] = 0;
-        int n = strlen(istr[i]) + 1;
-        pfuncs[ifunc].svalue[i] = new char[n];
-        strcpy(pfuncs[ifunc].svalue[i],istr[i]);
-      }
-    } else if (type == 'p') {
-      pfuncs[ifunc].ivarflag[i] = 0;
-      pfuncs[ifunc].itype[i] = PTR;
-      if (strcmp(istr[i],"SELF") != 0)
-        error->all(FLERR,"Invalid python command");
+    bool is_variable = (strstr(istr[i],"v_") == istr[i]);
 
-    } else error->all(FLERR,"Invalid python command");
+    if(is_variable) {
+      pfunc->ivarflag[i] = 1;
+      pfunc->svalue[i] = string(&istr[i][2]);
+    } else {
+      pfunc->ivarflag[i] = 0;
+    }
+
+    switch(type) {
+    case 'i':
+      pfunc->itype[i] = INT;
+      if (!is_variable)
+      {
+        pfunc->ivalue[i] = force->inumeric(FLERR,istr[i]);
+      }
+      break;
+
+    case 'f':
+      pfunc->itype[i] = DOUBLE;
+      if (!is_variable)
+      {
+        pfunc->dvalue[i] = force->numeric(FLERR,istr[i]);
+      }
+      break;
+
+    case 's':
+      pfunc->itype[i] = STRING;
+      if (!is_variable)
+      {
+        pfunc->svalue[i] = istr[i];
+      }
+      break;
+
+    case 'p':
+      pfunc->itype[i] = PTR;
+      if (is_variable || (strcmp(istr[i],"SELF") != 0))
+        error->all(FLERR,"Invalid python command");
+      break;
+
+    default:
+      error->all(FLERR,"Invalid python command");
+    }
   }
 
   // process output as value or variable
 
-  pfuncs[ifunc].ovarname = NULL;
-  pfuncs[ifunc].longstr = NULL;
-  if (!noutput) return ifunc;
+  if (!noutput) return pfunc;
 
   char type = format[ninput];
-  if (type == 'i') pfuncs[ifunc].otype = INT;
-  else if (type == 'f') pfuncs[ifunc].otype = DOUBLE;
-  else if (type == 's') pfuncs[ifunc].otype = STRING;
-  else error->all(FLERR,"Invalid python command");
+  switch(type){
+  case 'i':
+    pfunc->otype = INT;
+    break;
 
-  if (length_longstr) {
-    if (pfuncs[ifunc].otype != STRING) 
-      error->all(FLERR,"Python command length keyword "
-                 "cannot be used unless output is a string");
-    pfuncs[ifunc].length_longstr = length_longstr;
-    pfuncs[ifunc].longstr = new char[length_longstr+1];
+  case 'f':
+    pfunc->otype = DOUBLE;
+    break;
+
+  case 's':
+    if(length_longstr) {
+      pfunc->otype = LONG_STRING;
+    } else {
+      pfunc->otype = STRING;
+    }
+    break;
+  
+  default:
+    error->all(FLERR,"Invalid python command");
   }
 
   if (strstr(ostr,"v_") != ostr) error->all(FLERR,"Invalid python command");
-  int n = strlen(&ostr[2]) + 1;
-  pfuncs[ifunc].ovarname = new char[n];
-  strcpy(pfuncs[ifunc].ovarname,&ostr[2]);
+  
+  pfunc->ovarname = string(&ostr[2]);
 
-  return ifunc;
+  return pfunc;
 }
 
 /* ------------------------------------------------------------------ */
 
-void PythonBase::deallocate(int i)
+PyFunc::PyFunc(const string & name, int ninput, int noutput) :
+  name(name), ninput(ninput), noutput(noutput)
 {
-  delete [] pfuncs[i].itype;
-  delete [] pfuncs[i].ivarflag;
-  delete [] pfuncs[i].ivalue;
-  delete [] pfuncs[i].dvalue;
-  for (int j = 0; j < pfuncs[i].ninput; j++)
-    delete [] pfuncs[i].svalue[j];
-  delete [] pfuncs[i].svalue;
-  delete [] pfuncs[i].ovarname;
-  delete [] pfuncs[i].longstr;
+  itype = new DataType[ninput];
+  ivarflag = new int[ninput];
+  ivalue = new int[ninput];
+  dvalue = new double[ninput];
+  svalue = new string[ninput];
+
+  for(int i = 0; i < ninput; ++i) {
+    ivarflag[i] = 0;
+  }
+  
+  pyFunc = NULL;
+}
+
+PyFunc::~PyFunc()
+{
+  delete [] itype;
+  delete [] ivarflag;
+  delete [] ivalue;
+  delete [] dvalue;
+  delete [] svalue;
+  Py_XDECREF(pyFunc);
+}
+
+bool PyFunc::returns_long_string()
+{
+  return otype == LONG_STRING;
+}
+
+const char* PyFunc::get_long_string()
+{
+  return longstr.c_str();
 }

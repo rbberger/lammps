@@ -19,14 +19,6 @@
 #include "memory.h"
 #include "error.h"
 
-#if LMP_PYTHON
-#include <Python.h>
-#if PY_MAJOR_VERSION == 2
-#include "python2.h"
-#elif PY_MAJOR_VERSION == 3
-#include "python3.h"
-#endif
-#endif
 
 using namespace LAMMPS_NS;
 
@@ -57,13 +49,7 @@ PythonInterface::~PythonInterface()
 void Python::init()
 {
 #if LMP_PYTHON
-#if PY_MAJOR_VERSION == 2
-  impl = new Python2(lmp);
-#elif PY_MAJOR_VERSION == 3
-  impl = new Python3(lmp);
-#else
-  error->all(FLERR,"Unsupported Python version!");
-#endif
+  impl = new PythonBase(lmp);
 #else
   error->all(FLERR,"Python support missing! Compile with PYTHON package installed!");
 #endif
@@ -88,7 +74,7 @@ void Python::command(int narg, char **arg)
 
 /* ------------------------------------------------------------------ */
 
-void Python::invoke_function(int ifunc, char *result)
+void Python::invoke_function(PyFunc * ifunc, char *result)
 {
   if(!impl) init();
   impl->invoke_function(ifunc, result);
@@ -96,7 +82,7 @@ void Python::invoke_function(int ifunc, char *result)
 
 /* ------------------------------------------------------------------ */
 
-int Python::find(char *name)
+PyFunc * Python::find(char *name)
 {
   if(!impl) init();
   return impl->find(name);
@@ -104,16 +90,8 @@ int Python::find(char *name)
 
 /* ------------------------------------------------------------------ */
 
-int Python::variable_match(char *name, char *varname, int numeric)
+PyFunc* Python::variable_match(char *name, char *varname, int numeric)
 {
   if(!impl) init();
   return impl->variable_match(name, varname, numeric);
-}
-
-/* ------------------------------------------------------------------ */
-
-char *Python::long_string(int ifunc)
-{
-  if(!impl) init();
-  return impl->long_string(ifunc);
 }

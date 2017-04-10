@@ -14,26 +14,39 @@
 #ifndef LMP_PYTHON_BASE_H
 #define LMP_PYTHON_BASE_H
 
+#include <Python.h>
 #include "python.h"
+#include <map>
+#include <string>
 
 namespace LAMMPS_NS {
 
-enum{NONE,INT,DOUBLE,STRING,PTR};
+enum DataType {NONE,INT,DOUBLE,STRING,PTR,LONG_STRING};
 
 #define VALUELENGTH 64               // also in variable.cpp
 
 struct PyFunc {
-  char *name;
-  int ninput,noutput;
-  int *itype,*ivarflag;
+  PyFunc(const std::string & name, int ninput, int noutput);
+  ~PyFunc();
+
+  std::string name;
+  int ninput;
+  int noutput;
+
+  DataType *itype;
+  int *ivarflag;
   int *ivalue;
   double *dvalue;
-  char **svalue;
-  int otype;
-  char *ovarname;
-  char *longstr;
-  int length_longstr;
-  void *pFunc;
+  std::string * svalue;
+
+  DataType otype;
+  std::string ovarname;
+  std::string longstr;
+
+  PyObject * pyFunc;
+  
+  bool returns_long_string();
+  const char* get_long_string();
 };
 
 class PythonBase : public PythonInterface, protected Pointers {
@@ -41,23 +54,20 @@ class PythonBase : public PythonInterface, protected Pointers {
   PythonBase(class LAMMPS *);
   virtual ~PythonBase();
   void command(int, char **);
-  void invoke_function(int, char *) = 0;
-  int find(char *);
-  int variable_match(char *, char *, int);
-  char *long_string(int);
+  void invoke_function(PyFunc*, char *);
+  PyFunc* find(char *);
+  PyFunc* variable_match(char *, char *, int);
 
  protected:
   bool external_interpreter;
   int ninput,noutput,length_longstr;
   char **istr;
   char *ostr,*format;
-  void *pyMain;
+  PyObject *pyMain;
 
-  PyFunc *pfuncs;
-  int nfunc;
+  std::map<std::string, PyFunc*> functions;
 
-  int create_entry(char *);
-  void deallocate(int);
+  PyFunc* create_entry(char *);
 };
 
 }
