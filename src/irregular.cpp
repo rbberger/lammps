@@ -20,6 +20,7 @@
 #include "domain.h"
 #include "comm.h"
 #include "memory.h"
+#include <algorithm>
 
 using namespace LAMMPS_NS;
 
@@ -29,6 +30,18 @@ using namespace LAMMPS_NS;
 
 int *Irregular::proc_recv_copy;
 static int compare_standalone(const void *, const void *);
+
+#elif defined(LMP_USE_STL_SORT)
+
+struct comparator {
+    int * proc_recv;
+
+    comparator(int * proc_recv) : proc_recv(proc_recv) {}
+
+    bool operator()(int i, int j) {
+      return proc_recv[i] < proc_recv[j];
+    }
+};
 
 #else
 
@@ -436,6 +449,8 @@ int Irregular::create_atom(int n, int *sizes, int *proclist, int sortflag)
 #if defined(LMP_USE_LIBC_QSORT)
     proc_recv_copy = proc_recv;
     qsort(order,nrecv_proc,sizeof(int),compare_standalone);
+#elif defined(LMP_USE_STL_SORT)
+    std::sort(order, order+nrecv_proc, comparator(proc_recv));
 #else
     merge_sort(order,nrecv_proc,(void *)proc_recv,compare_standalone);
 #endif
@@ -480,6 +495,8 @@ int compare_standalone(const void *iptr, const void *jptr)
   if (proc_recv[i] > proc_recv[j]) return 1;
   return 0;
 }
+
+#elif defined(LMP_USE_STL_SORT)
 
 #else
 
@@ -708,6 +725,8 @@ int Irregular::create_data(int n, int *proclist, int sortflag)
 #if defined(LMP_USE_LIBC_QSORT)
     proc_recv_copy = proc_recv;
     qsort(order,nrecv_proc,sizeof(int),compare_standalone);
+#elif defined(LMP_USE_STL_SORT)
+    std::sort(order, order+nrecv_proc, comparator(proc_recv));
 #else
     merge_sort(order,nrecv_proc,(void *)proc_recv,compare_standalone);
 #endif

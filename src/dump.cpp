@@ -33,12 +33,61 @@ using namespace LAMMPS_NS;
 #if defined(LMP_USE_LIBC_QSORT)
 // allocate space for static class variable
 Dump *Dump::dumpptr;
+#elif defined(LMP_USE_STL_SORT)
+#include <algorithm>
 #else
 #include "mergesort.h"
 #endif
 
 #define BIG 1.0e20
 #define EPSILON 1.0e-6
+
+struct id_comparator
+{
+  tagint * idsort;
+
+  id_comparator(tagint * idsort) : idsort(idsort) {}
+
+  bool operator()(int i, int j) {
+    return idsort[i] < idsort[j];
+  }
+};
+
+struct buf_comparator
+{
+  double * bufsort;
+  int size_one;
+  int sortcolm1;
+
+  buf_comparator(double * bufsort, int size_one, int sortcolm1) :
+    bufsort(bufsort), size_one(size_one), sortcolm1(sortcolm1)
+  {
+  }
+
+  bool operator()(int i, int j) {
+    int ii = i*size_one + sortcolm1;
+    int jj = j*size_one + sortcolm1;
+    return bufsort[ii] < bufsort[jj];
+  }
+};
+
+struct buf_reverse_comparator
+{
+  double * bufsort;
+  int size_one;
+  int sortcolm1;
+
+  buf_reverse_comparator(double * bufsort, int size_one, int sortcolm1) :
+    bufsort(bufsort), size_one(size_one), sortcolm1(sortcolm1)
+  {
+  }
+
+  bool operator()(int i, int j) {
+    int ii = i*size_one + sortcolm1;
+    int jj = j*size_one + sortcolm1;
+    return bufsort[ii] > bufsort[jj];
+  }
+};
 
 enum{ASCEND,DESCEND};
 
@@ -699,6 +748,14 @@ void Dump::sort()
     if (sortcol == 0) qsort(index,nme,sizeof(int),idcompare);
     else if (sortorder == ASCEND) qsort(index,nme,sizeof(int),bufcompare);
     else qsort(index,nme,sizeof(int),bufcompare_reverse);
+  }
+#elif defined(LMP_USE_STL_SORT)
+  if (!reorderflag) {
+    for (int i = 0; i < nme; ++i) index[i] = i;
+
+    if (sortcol == 0) std::sort(index, index+nme, id_comparator(idsort));
+    else if (sortorder == ASCEND) std::sort(index, index+nme, buf_comparator(bufsort, size_one, sortcolm1));
+    else std::sort(index, index+nme, buf_reverse_comparator(bufsort, size_one, sortcolm1));
   }
 #else
   if (!reorderflag) {
