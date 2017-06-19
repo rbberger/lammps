@@ -25,7 +25,7 @@
 // part 1. insertion sort for pre-sorting of small chunks
 
 template<typename CompareFunc>
-static void insertion_sort(int *index, int num, CompareFunc compare)
+static void insertion_sort(int *index, int num, CompareFunc & compare)
 {
   if (num < 2) return;
   for (int i=1; i < num; ++i) {
@@ -45,7 +45,7 @@ static void insertion_sort(int *index, int num, CompareFunc compare)
 // part 2. merge two sublists
 
 template<typename CompareFunc>
-static void do_merge(int *idx, int *buf, int llo, int lhi, int rlo, int rhi, CompareFunc compare)
+static void do_merge(int *idx, int *buf, int llo, int lhi, int rlo, int rhi, CompareFunc & compare)
 {
   int i = llo;
   int l = llo;
