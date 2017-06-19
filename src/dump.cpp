@@ -35,6 +35,8 @@ using namespace LAMMPS_NS;
 Dump *Dump::dumpptr;
 #elif defined(LMP_USE_STL_SORT)
 #include <algorithm>
+#elif defined(LMP_USE_MERGE_SORT_ALT)
+#include "mergesort_alt.h"
 #else
 #include "mergesort.h"
 #endif
@@ -756,6 +758,13 @@ void Dump::sort()
     if (sortcol == 0) std::sort(index, index+nme, id_comparator(idsort));
     else if (sortorder == ASCEND) std::sort(index, index+nme, buf_comparator(bufsort, size_one, sortcolm1));
     else std::sort(index, index+nme, buf_reverse_comparator(bufsort, size_one, sortcolm1));
+  }
+#elif defined(LMP_USE_MERGE_SORT_ALT)
+  if (!reorderflag) {
+    for (i = 0; i < nme; i++) index[i] = i;
+    if (sortcol == 0) merge_sort(index,nme, id_comparator(idsort));
+    else if (sortorder == ASCEND) merge_sort(index,nme, buf_comparator(bufsort, size_one, sortcolm1));
+    else merge_sort(index,nme, buf_reverse_comparator(bufsort, size_one, sortcolm1));
   }
 #else
   if (!reorderflag) {
