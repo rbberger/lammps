@@ -27,18 +27,14 @@
 template<typename CompareFunc>
 static void insertion_sort(int *index, int num, CompareFunc & compare)
 {
-  if (num < 2) return;
-  for (int i=1; i < num; ++i) {
-    int tmp = index[i];
-    for (int j=i-1; j >= 0; --j) {
-      if (compare(index[j],tmp) > 0) {
-        index[j+1] = index[j];
-      } else {
-        index[j+1] = tmp;
-        break;
-      }
-      if (j == 0) index[0] = tmp;
+  for (int j = 1; j < num; ++j) {
+    int tmp = index[j];
+    int i = j - 1;
+    while(i >= 0 && compare(tmp, index[i])) {
+      index[i+1] = index[i];
+      --i;
     }
+    index[i+1] = tmp;
   }
 }
 
@@ -51,9 +47,10 @@ static void do_merge(int *idx, int *buf, int llo, int lhi, int rlo, int rhi, Com
   int l = llo;
   int r = rlo;
   while ((l < lhi) && (r < rhi)) {
-    if (compare(buf[l],buf[r]) < 0)
+    if (compare(buf[l],buf[r]))
       idx[i++] = buf[l++];
-    else idx[i++] = buf[r++];
+    else
+      idx[i++] = buf[r++];
   }
 
   while (l < lhi) idx[i++] = buf[l++];
