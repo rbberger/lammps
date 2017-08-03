@@ -39,6 +39,12 @@
 #include "info.h"
 #include "error.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#define usleep Sleep
+#define ATOM AATOM
+#endif
+
 using namespace LAMMPS_NS;
 using namespace MathConst;
 

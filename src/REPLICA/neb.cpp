@@ -588,7 +588,7 @@ void NEB::print_status()
     MPI_Allgather(&fnorminf,1,MPI_DOUBLE,&fmaxatomInRepl[0],1,MPI_DOUBLE,roots);
   }
 
-  double one[numall];
+  double * one = new double[numall];
   one[0] = fneb->veng;
   one[1] = fneb->plen;
   one[2] = fneb->nlen;
@@ -695,4 +695,5 @@ void NEB::print_status()
       fflush(ulogfile);
     }
   }
+  delete[] one;
 }

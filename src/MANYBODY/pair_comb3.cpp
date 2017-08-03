@@ -313,7 +313,7 @@ void PairComb3::read_lib()
   unsigned int maxlib = 1024;
   int i,j,k,l,nwords,m;
   int ii,jj,kk,ll,mm,iii;
-  char s[maxlib];
+  char *  s = new char[maxlib];
   char **words = new char*[80];
 
   // open libraray file on proc 0

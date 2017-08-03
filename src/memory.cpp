@@ -50,8 +50,12 @@ void *Memory::smalloc(bigint nbytes, const char *name)
 #if defined(LMP_USE_TBB_ALLOCATOR)
   ptr = scalable_aligned_malloc(nbytes, LAMMPS_MEMALIGN);
 #else
+#ifdef _WIN32
+  ptr = _aligned_malloc(nbytes, LAMMPS_MEMALIGN);
+#else
   int retval = posix_memalign(&ptr, LAMMPS_MEMALIGN, nbytes);
   if (retval) ptr = NULL;
+#endif
 #endif
 
 #else
@@ -110,7 +114,11 @@ void Memory::sfree(void *ptr)
   #if defined(LMP_USE_TBB_ALLOCATOR)
   scalable_aligned_free(ptr);
   #else
+#ifdef _WIN32
+  _aligned_free(ptr);
+#else
   free(ptr);
+#endif
   #endif
 }
 

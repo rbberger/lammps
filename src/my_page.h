@@ -220,8 +220,14 @@ class MyPage {
     for (int i = npage-pagedelta; i < npage; i++) {
 #if defined(LAMMPS_MEMALIGN)
       void *ptr;
+#ifdef _WIN32
+	ptr = _aligned_malloc(pagesize*sizeof(T), LAMMPS_MEMALIGN);
+	if(ptr == NULL)
+        errorflag = 2;
+#else
       if (posix_memalign(&ptr, LAMMPS_MEMALIGN, pagesize*sizeof(T)))
         errorflag = 2;
+#endif
       pages[i] = (T *) ptr;
 #else
       pages[i] = (T *) malloc(pagesize*sizeof(T));

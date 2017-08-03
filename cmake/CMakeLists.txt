@@ -33,6 +33,11 @@ endforeach()
 
 enable_language(CXX)
 
+IF(WIN32)
+  INCLUDE_DIRECTORIES(${LAMMPS_SOURCE_DIR}/WINDOWS/extra)
+  ADD_DEFINITIONS(-D_USE_MATH_DEFINES -DNOMINMAX)
+ENDIF()
+
 ######################################################################
 # compiler tests
 # these need ot be done early (before further tests).
@@ -301,24 +306,24 @@ endif()
 ########################################################################
 # Basic system tests (standard libraries, headers, functions, types)   #
 ########################################################################
-include(CheckIncludeFile)
-foreach(HEADER math.h)
-  check_include_file(${HEADER} FOUND_${HEADER})
-  if(NOT FOUND_${HEADER})
-    message(FATAL_ERROR "Could not find needed header - ${HEADER}")
-  endif(NOT FOUND_${HEADER})
-endforeach(HEADER)
+#include(CheckIncludeFile)
+#foreach(HEADER math.h)
+#  check_include_file(${HEADER} FOUND_${HEADER})
+#  if(NOT FOUND_${HEADER})
+#    message(FATAL_ERROR "Could not find needed header - ${HEADER}")
+#  endif(NOT FOUND_${HEADER})
+#endforeach(HEADER)
 
-set(MATH_LIBRARIES "m" CACHE STRING "math library")
-mark_as_advanced( MATH_LIBRARIES )
-include(CheckLibraryExists)
-foreach(FUNC sin cos)
-  check_library_exists(${MATH_LIBRARIES} ${FUNC} "" FOUND_${FUNC}_${MATH_LIBRARIES})
-  if(NOT FOUND_${FUNC}_${MATH_LIBRARIES})
-    message(FATAL_ERROR "Could not find needed math function - ${FUNC}")
-  endif(NOT FOUND_${FUNC}_${MATH_LIBRARIES})
-endforeach(FUNC)
-list(APPEND LAMMPS_LINK_LIBS ${MATH_LIBRARIES})
+#set(MATH_LIBRARIES "m" CACHE STRING "math library")
+#mark_as_advanced( MATH_LIBRARIES )
+#include(CheckLibraryExists)
+#foreach(FUNC sin cos)
+#  check_library_exists(${MATH_LIBRARIES} ${FUNC} "" FOUND_${FUNC}_${MATH_LIBRARIES})
+#  if(NOT FOUND_${FUNC}_${MATH_LIBRARIES})
+#    message(FATAL_ERROR "Could not find needed math function - ${FUNC}")
+#  endif(NOT FOUND_${FUNC}_${MATH_LIBRARIES})
+#endforeach(FUNC)
+#list(APPEND LAMMPS_LINK_LIBS ${MATH_LIBRARIES})
 
 ######################################
 # Generate Basic Style files 
