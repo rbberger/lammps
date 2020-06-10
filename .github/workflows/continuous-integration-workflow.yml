@@ -19,7 +19,6 @@ jobs:
       CCACHE_HASH: ccache-${{ matrix.os }}-${{ matrix.build }}
       LAMMPS_COMPILE_NPROC: 2
       LAMMPS_CI_RUNNER: github
-      LAMMPS_DIR: ${{ env.GITHUB_WORKSPACE }}
       CCACHE_DIR: ~/.ccache
     steps:
       - name: Get time
@@ -37,6 +36,7 @@ jobs:
       - name: Build
         run: |
           ccache -z
+          export LAMMPS_DIR=$PWD
           lammps_testing/scripts/builds/${{ matrix.build }}.sh
           ccache -s
       - name: Tests
