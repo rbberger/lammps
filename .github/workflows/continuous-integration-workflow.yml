@@ -101,6 +101,8 @@ jobs:
           if [ "${{ matrix.config.os }}" != "ubuntu18.04" ] ; then
             module load mpi
           fi
+          pwd
+          ls -la
           ls -la .ccache/
           ccache -s
           ccache -z
