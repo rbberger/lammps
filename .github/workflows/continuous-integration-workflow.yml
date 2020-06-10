@@ -35,7 +35,7 @@ jobs:
       - name: Install Deps
         uses: actions/checkout@master
         with:
-          repository: lammps/lammps-testing.git
+          repository: 'lammps/lammps-testing'
           ref: 'master'
           path: 'lammps/lammps-testing'
       - name: Build
