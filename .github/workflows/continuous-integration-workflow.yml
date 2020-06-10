@@ -37,16 +37,13 @@ jobs:
         with:
           repository: 'lammps/lammps-testing'
           ref: 'master'
-          path: 'lammps/lammps-testing'
+          path: 'lammps-testing'
       - name: Build
         shell: bash -l {0}
         run: |
           ccache -z
-          pwd
-          ls
-          ls ..
           export LAMMPS_DIR=$PWD
-          ../lammps-testing/scripts/builds/${{ matrix.build }}.sh
+          lammps-testing/scripts/builds/${{ matrix.build }}.sh
           ccache -s
       - name: Tests
         run: cd build && ctest --output-on-failure
