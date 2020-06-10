@@ -33,7 +33,7 @@ jobs:
           restore-keys: ${{ env.CCACHE_HASH }}
       - uses: actions/checkout@master
       - name: Install Deps
-        uses: actions/cache@v2
+        uses: actions/checkout@master
           with:
             repository: lammps/lammps-testing.git
             ref: 'master'
