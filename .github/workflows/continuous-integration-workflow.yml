@@ -21,6 +21,7 @@ jobs:
       LAMMPS_COMPILE_NPROC: 2
       LAMMPS_CI_RUNNER: github
       CCACHE_DIR: ~/.ccache
+      LMOD_SYSTEM_DEFAULT_MODULES: mpi
     steps:
       - name: Get time
         id: time
@@ -36,6 +37,7 @@ jobs:
           git clone --depth 1 https://github.com/lammps/lammps-testing.git
       - name: Build
         run: |
+          source /etc/profile
           ccache -z
           export LAMMPS_DIR=$PWD
           lammps-testing/scripts/builds/${{ matrix.build }}.sh
