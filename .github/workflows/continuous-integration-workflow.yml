@@ -14,7 +14,8 @@ jobs:
       matrix:
         os: [ubuntu18.04, centos7, fedora32_mingw]
         build: [cmake_kokkos_mpi_openmp_clang_shared]
-    runs-on: "lammps/buildenv:${{ matrix.os }}"
+    runs-on: ubuntu-latest
+    container: "lammps/buildenv:${{ matrix.os }}"
     env:
       CCACHE_HASH: ccache-${{ matrix.os }}-${{ matrix.build }}
       LAMMPS_COMPILE_NPROC: 2
