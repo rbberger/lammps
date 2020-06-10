@@ -47,8 +47,9 @@ jobs:
           ccache -z
           pwd
           ls
+          ls ..
           export LAMMPS_DIR=$PWD
-          lammps-testing/scripts/builds/${{ matrix.build }}.sh
+          ../lammps-testing/scripts/builds/${{ matrix.build }}.sh
           ccache -s
       - name: Tests
         run: cd build && ctest --output-on-failure
