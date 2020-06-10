@@ -41,6 +41,9 @@ jobs:
       - name: Build
         shell: bash -l {0}
         run: |
+          if [ "${{ matrix.os }}" != "ubuntu18.04" ] ; then
+            module load mpi
+          fi
           ccache -z
           export LAMMPS_DIR=$PWD
           lammps-testing/scripts/builds/${{ matrix.build }}.sh
