@@ -8,16 +8,19 @@ on:
       - master
 
 jobs:
-  CI:
+  compilation_tests:
     continue-on-error: true 
     strategy:
       matrix:
-        set: ["all_off", "most", "minimal", "nolib", "kokkos-serial", "kokkos-openmp"]
-        cxx: ["g++", "g++-8", "g++-9","clang++"]
-        cmake_build_type: ["Release", "Debug"]
-    runs-on: ubuntu-latest
+        os: [ubuntu18.04, centos7, fedora32_mingw]
+        build: [cmake_kokkos_mpi_openmp_clang_shared]
+    runs-on: "lammps/buildenv:${{ matrix.os }}"
     env:
-      CCACHE_HASH: ccache-${{ matrix.set }}-${{ matrix.cxx }}-${{ matrix.cmake_build_type }}
+      CCACHE_HASH: ccache-${{ matrix.os }}-${{ matrix.build }}
+      LAMMPS_COMPILE_NPROC: 2
+      LAMMPS_CI_RUNNER: github
+      LAMMPS_DIR: ${{ env.GITHUB_WORKSPACE }}
+      CCACHE_DIR: ~/.ccache
     steps:
       - name: Get time
         id: time
@@ -30,16 +33,13 @@ jobs:
       - uses: actions/checkout@master
       - name: Install Deps
         run: |
-          sudo apt-get install -y ccache
-          echo "::add-path::/usr/lib/ccache"
-      - name: CMake
-        run: cmake -B builddir -C cmake/presets/${{ matrix.set }}.cmake -DENABLE_TESTING=ON -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} cmake
+          git clone --depth 1 https://github.com/lammps/lammps-testing.git
       - name: Build
         run: |
           ccache -z
-          cmake --build builddir --parallel 3 
+          lammps_testing/scripts/builds/${{ matrix.build }}.sh
           ccache -s
       - name: Tests
-        run: cd builddir && ctest --output-on-failure
+        run: cd build && ctest --output-on-failure
       - name: Install
-        run: cmake --install builddir
+        run: cmake --install build
