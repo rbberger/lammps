@@ -15,6 +15,9 @@ jobs:
       matrix:
         os: [ubuntu18.04, centos7, fedora32_mingw]
         build: [cmake_kokkos_mpi_openmp_clang_shared]
+        exclude:
+         - os: centos7
+           build: cmake_kokkos_mpi_openmp_clang_shared
     runs-on: ubuntu-latest
     container: "lammps/buildenv:${{ matrix.os }}"
     env:
