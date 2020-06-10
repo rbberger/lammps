@@ -43,11 +43,6 @@ jobs:
 #      - name: Get time
 #        id: time
 #        run: echo "::set-output name=time::$(date +%s)"
-#      - uses: actions/cache@v2
-#        with:
-#          path: .ccache
-#          key: ${{ env.CCACHE_HASH }}-${{ steps.time.outputs.time }}
-#          restore-keys: ${{ env.CCACHE_HASH }}
 #      - uses: actions/checkout@master
 #      - name: Install Deps
 #        uses: actions/checkout@master
@@ -55,6 +50,11 @@ jobs:
 #          repository: 'lammps/lammps-testing'
 #          ref: 'master'
 #          path: 'lammps-testing'
+#      - uses: actions/cache@v2
+#        with:
+#          path: .ccache
+#          key: ${{ env.CCACHE_HASH }}-${{ steps.time.outputs.time }}
+#          restore-keys: ${{ env.CCACHE_HASH }}
 #      - name: Build
 #        shell: bash -l {0}
 #        run: |
@@ -80,16 +80,10 @@ jobs:
       CCACHE_HASH: ccache-${{ matrix.config.os }}-${{ matrix.config.build }}
       LAMMPS_COMPILE_NPROC: 2
       LAMMPS_CI_RUNNER: github
-      CCACHE_DIR: /home/github/.ccache
     steps:
       - name: Get time
         id: time
         run: echo "::set-output name=time::$(date +%s)"
-      - uses: actions/cache@v2
-        with:
-          path: /home/github/.ccache
-          key: ${{ env.CCACHE_HASH }}-${{ steps.time.outputs.time }}
-          restore-keys: ${{ env.CCACHE_HASH }}
       - uses: actions/checkout@master
       - name: Install Deps
         uses: actions/checkout@master
@@ -97,16 +91,17 @@ jobs:
           repository: 'lammps/lammps-testing'
           ref: 'master'
           path: 'lammps-testing'
+      - uses: actions/cache@v2
+        with:
+          path: .ccache
+          key: ${{ env.CCACHE_HASH }}-${{ steps.time.outputs.time }}
+          restore-keys: ${{ env.CCACHE_HASH }}
       - name: Build
         shell: bash -el {0}
         run: |
           if [ "${{ matrix.config.os }}" != "ubuntu18.04" ] ; then
             module load mpi
           fi
-          pwd
-          echo $CCACHE_DIR
-          ls -la
-          ccache -s
           ccache -z
           export LAMMPS_DIR=$PWD
           export LAMMPS_TESTING_DIR=$PWD/lammps-testing
