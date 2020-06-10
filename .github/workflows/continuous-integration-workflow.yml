@@ -40,11 +40,15 @@ jobs:
           path: 'lammps/lammps-testing'
       - name: Build
         run: |
+          source /etc/profile
+          if [ "${{ matrix.os }}" != "ubuntu18.04" ] ; then
+             module load mpi
+          fi
           ccache -z
           pwd
           ls
           export LAMMPS_DIR=$PWD
-          lammps_testing/scripts/builds/${{ matrix.build }}.sh
+          lammps-testing/scripts/builds/${{ matrix.build }}.sh
           ccache -s
       - name: Tests
         run: cd build && ctest --output-on-failure
