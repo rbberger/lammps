@@ -8,6 +8,7 @@ on:
     branches:
       - master
 
+
 jobs:
 #  compilation_tests:
 #    continue-on-error: true
