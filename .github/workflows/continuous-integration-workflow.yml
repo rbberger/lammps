@@ -39,11 +39,8 @@ jobs:
           ref: 'master'
           path: 'lammps/lammps-testing'
       - name: Build
+        shell: bash -l {0}
         run: |
-          source /etc/profile
-          if [ "${{ matrix.os }}" != "ubuntu18.04" ] ; then
-             module load mpi
-          fi
           ccache -z
           pwd
           ls
