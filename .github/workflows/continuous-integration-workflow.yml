@@ -34,9 +34,9 @@ jobs:
       - uses: actions/checkout@master
       - name: Install Deps
         uses: actions/checkout@master
-          with:
-            repository: lammps/lammps-testing.git
-            ref: 'master'
+        with:
+          repository: lammps/lammps-testing.git
+          ref: 'master'
       - name: Build
         run: |
           ccache -z
