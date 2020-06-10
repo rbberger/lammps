@@ -33,11 +33,15 @@ jobs:
           restore-keys: ${{ env.CCACHE_HASH }}
       - uses: actions/checkout@master
       - name: Install Deps
-        run: |
-          git clone --depth 1 https://github.com/lammps/lammps-testing.git
+        uses: actions/cache@v2
+          with:
+            repository: lammps/lammps-testing.git
+            ref: 'master'
       - name: Build
         run: |
           ccache -z
+          pwd
+          ls
           export LAMMPS_DIR=$PWD
           lammps_testing/scripts/builds/${{ matrix.build }}.sh
           ccache -s
