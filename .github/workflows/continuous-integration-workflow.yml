@@ -65,7 +65,6 @@ jobs:
           lammps-testing/scripts/builds/${{ matrix.config.build }}.sh
           ccache -s
 
-
   unit_tests:
     continue-on-error: true
     strategy:
