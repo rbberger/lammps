@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - github-actions
   pull_request:
     branches:
       - master
@@ -32,8 +33,11 @@ jobs:
           restore-keys: ${{ env.CCACHE_HASH }}
       - uses: actions/checkout@master
       - name: Install Deps
-        run: |
-          git clone --depth 1 https://github.com/lammps/lammps-testing.git
+        uses: actions/checkout@master
+        with:
+          repository: lammps/lammps-testing.git
+          ref: 'master'
+          path: 'lammps/lammps-testing'
       - name: Build
         run: |
           source /etc/profile
@@ -41,6 +45,8 @@ jobs:
              module load mpi
           fi
           ccache -z
+          pwd
+          ls
           export LAMMPS_DIR=$PWD
           lammps-testing/scripts/builds/${{ matrix.build }}.sh
           ccache -s
