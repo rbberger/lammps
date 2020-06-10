@@ -37,6 +37,7 @@ jobs:
         with:
           repository: lammps/lammps-testing.git
           ref: 'master'
+          path: 'lammps/lammps-testing'
       - name: Build
         run: |
           ccache -z
