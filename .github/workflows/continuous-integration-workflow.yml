@@ -10,7 +10,7 @@ on:
 
 jobs:
   compilation_tests:
-    continue-on-error: true 
+    continue-on-error: true
     strategy:
       matrix:
         config:
@@ -61,7 +61,59 @@ jobs:
           export LAMMPS_DIR=$PWD
           lammps-testing/scripts/builds/${{ matrix.config.build }}.sh
           ccache -s
-      - name: Tests
-        run: cd build && ctest --output-on-failure
-      - name: Install
-        run: cmake --install build
+
+  unit_tests:
+    continue-on-error: true
+    strategy:
+      matrix:
+        config:
+         - { os: ubuntu18.04, build: cmake_mpi_openmp_smallsmall_shared }
+         - { os: ubuntu18.04, build: cmake_mpi_openmp_smallbig_shared }
+         - { os: ubuntu18.04, build: cmake_mpi_openmp_bigbig_shared }
+    runs-on: ubuntu-latest
+    container: "lammps/buildenv:${{ matrix.config.os }}"
+    env:
+      CCACHE_HASH: ccache-${{ matrix.config.os }}-${{ matrix.config.build }}
+      LAMMPS_COMPILE_NPROC: 2
+      LAMMPS_CI_RUNNER: github
+      CCACHE_DIR: ~/.ccache
+    steps:
+      - name: Get time
+        id: time
+        run: echo "::set-output name=time::$(date +%s)"
+      - uses: actions/cache@v2
+        with:
+          path: ~/.ccache
+          key: ${{ env.CCACHE_HASH }}-${{ steps.time.outputs.time }}
+          restore-keys: ${{ env.CCACHE_HASH }}
+      - uses: actions/checkout@master
+      - name: Install Deps
+        uses: actions/checkout@master
+        with:
+          repository: 'lammps/lammps-testing'
+          ref: 'master'
+          path: 'lammps-testing'
+      - name: Build
+        shell: bash -l {0}
+        run: |
+          if [ "${{ matrix.config.os }}" != "ubuntu18.04" ] ; then
+            module load mpi
+          fi
+          ccache -z
+          export LAMMPS_DIR=$PWD
+          export LAMMPS_TESTING_DIR=$PWD/lammps-testing
+          lammps-testing/scripts/unit_tests/${{ matrix.config.build }}/build.sh
+          ccache -s
+      - name: Test
+        shell: bash -l {0}
+        run: |
+          if [ "${{ matrix.config.os }}" != "ubuntu18.04" ] ; then
+            module load mpi
+          fi
+          export LAMMPS_DIR=$PWD
+          export LAMMPS_TESTING_DIR=$PWD/lammps-testing
+          lammps-testing/scripts/unit_tests/${{ matrix.config.build }}/test.sh
+      - uses: codecov/codecov-action@v1
+        with:
+          file: build/coverage.xml
+          flags: unittests
