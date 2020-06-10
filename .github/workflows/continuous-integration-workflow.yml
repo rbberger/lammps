@@ -10,62 +10,62 @@ on:
 
 
 jobs:
-#  compilation_tests:
-#    continue-on-error: true
-#    strategy:
-#      matrix:
-#        config:
-#         # Ubuntu
-#         - { os: ubuntu18.04,    build: cmake_kokkos_mpi_openmp_clang_shared }
-#         - { os: ubuntu18.04,    build: cmake_mpi_openmp_bigbig_static }
-#         - { os: ubuntu18.04,    build: legacy_mpi_bigbig_shared }
-#         - { os: ubuntu18.04,    build: legacy_serial_openmp_smallsmall_static }
-#         # Fedora 32
-#         - { os: fedora32_mingw, build: cmake_kokkos_mpi_openmp_clang_shared }
-#         - { os: fedora32_mingw, build: cmake_serial_smallsmall_static }
-#         - { os: fedora32_mingw, build: cmake_mpi_smallbig_shared }
-#         - { os: fedora32_mingw, build: legacy_mpi_bigbig_shared }
-#         # CentOS 7
-#         - { os: centos7,        build: cmake_mpi_openmp_bigbig_static }
-#         - { os: centos7,        build: cmake_serial_smallsmall_static }
-#         - { os: centos7,        build: cmake_mpi_smallbig_shared }
-#         - { os: centos7,        build: legacy_serial_openmp_smallsmall_static }
-#         # Windows (MinGW)
-#         - { os: fedora32_mingw, build: cmake_mpi_openmp_smallbig_shared_win64 }
-#         - { os: fedora32_mingw, build: cmake_serial_smallsmall_static_win32 }
-#    runs-on: ubuntu-latest
-#    container: "lammps/buildenv:${{ matrix.config.os }}"
-#    env:
-#      CCACHE_HASH: ccache-${{ matrix.config.os }}-${{ matrix.config.build }}
-#      LAMMPS_COMPILE_NPROC: 2
-#      LAMMPS_CI_RUNNER: github
-#    steps:
-#      - name: Get time
-#        id: time
-#        run: echo "::set-output name=time::$(date +%s)"
-#      - uses: actions/checkout@master
-#      - name: Install Deps
-#        uses: actions/checkout@master
-#        with:
-#          repository: 'lammps/lammps-testing'
-#          ref: 'master'
-#          path: 'lammps-testing'
-#      - uses: actions/cache@v2
-#        with:
-#          path: .ccache
-#          key: ${{ env.CCACHE_HASH }}-${{ steps.time.outputs.time }}
-#          restore-keys: ${{ env.CCACHE_HASH }}
-#      - name: Build
-#        shell: bash -l {0}
-#        run: |
-#          if [ "${{ matrix.config.os }}" != "ubuntu18.04" ] ; then
-#            module load mpi
-#          fi
-#          ccache -z
-#          export LAMMPS_DIR=$PWD
-#          lammps-testing/scripts/builds/${{ matrix.config.build }}.sh
-#          ccache -s
-#
+  compilation_tests:
+    continue-on-error: true
+    strategy:
+      matrix:
+        config:
+         # Ubuntu
+         - { os: ubuntu18.04,    build: cmake_kokkos_mpi_openmp_clang_shared }
+         - { os: ubuntu18.04,    build: cmake_mpi_openmp_bigbig_static }
+         - { os: ubuntu18.04,    build: legacy_mpi_bigbig_shared }
+         - { os: ubuntu18.04,    build: legacy_serial_openmp_smallsmall_static }
+         # Fedora 32
+         - { os: fedora32_mingw, build: cmake_kokkos_mpi_openmp_clang_shared }
+         - { os: fedora32_mingw, build: cmake_serial_smallsmall_static }
+         - { os: fedora32_mingw, build: cmake_mpi_smallbig_shared }
+         - { os: fedora32_mingw, build: legacy_mpi_bigbig_shared }
+         # CentOS 7
+         - { os: centos7,        build: cmake_mpi_openmp_bigbig_static }
+         - { os: centos7,        build: cmake_serial_smallsmall_static }
+         - { os: centos7,        build: cmake_mpi_smallbig_shared }
+         - { os: centos7,        build: legacy_serial_openmp_smallsmall_static }
+         # Windows (MinGW)
+         - { os: fedora32_mingw, build: cmake_mpi_openmp_smallbig_shared_win64 }
+         - { os: fedora32_mingw, build: cmake_serial_smallsmall_static_win32 }
+    runs-on: ubuntu-latest
+    container: "lammps/buildenv:${{ matrix.config.os }}"
+    env:
+      CCACHE_HASH: ccache-${{ matrix.config.os }}-${{ matrix.config.build }}
+      LAMMPS_COMPILE_NPROC: 2
+      LAMMPS_CI_RUNNER: github
+    steps:
+      - name: Get time
+        id: time
+        run: echo "::set-output name=time::$(date +%s)"
+      - uses: actions/checkout@master
+      - name: Install Deps
+        uses: actions/checkout@master
+        with:
+          repository: 'lammps/lammps-testing'
+          ref: 'master'
+          path: 'lammps-testing'
+      - uses: actions/cache@v2
+        with:
+          path: .ccache
+          key: ${{ env.CCACHE_HASH }}-${{ steps.time.outputs.time }}
+          restore-keys: ${{ env.CCACHE_HASH }}
+      - name: Build
+        shell: bash -el {0}
+        run: |
+          if [ "${{ matrix.config.os }}" != "ubuntu18.04" ] ; then
+            module load mpi
+          fi
+          ccache -z
+          export LAMMPS_DIR=$PWD
+          lammps-testing/scripts/builds/${{ matrix.config.build }}.sh
+          ccache -s
+
   unit_tests:
     continue-on-error: true
     strategy:
@@ -108,7 +108,7 @@ jobs:
           lammps-testing/scripts/unit_tests/${{ matrix.config.build }}/build.sh
           ccache -s
       - name: Test
-        shell: bash -l {0}
+        shell: bash -el {0}
         run: |
           if [ "${{ matrix.config.os }}" != "ubuntu18.04" ] ; then
             module load mpi
