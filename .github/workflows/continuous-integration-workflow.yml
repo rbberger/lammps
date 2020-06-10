@@ -79,14 +79,13 @@ jobs:
       CCACHE_HASH: ccache-${{ matrix.config.os }}-${{ matrix.config.build }}
       LAMMPS_COMPILE_NPROC: 2
       LAMMPS_CI_RUNNER: github
-      CCACHE_DIR: "${{ env.HOME }}/.ccache"
     steps:
       - name: Get time
         id: time
         run: echo "::set-output name=time::$(date +%s)"
       - uses: actions/cache@v2
         with:
-          path: ~/.ccache
+          path: ${{ env.HOME }}/.ccache
           key: ${{ env.CCACHE_HASH }}-${{ steps.time.outputs.time }}
           restore-keys: ${{ env.CCACHE_HASH }}
       - uses: actions/checkout@master
@@ -103,6 +102,7 @@ jobs:
             module load mpi
           fi
           pwd
+          export CCACHE_DIR=${{ env.HOME }}/.ccache
           echo $CCACHE_DIR
           ls -la
           ls -la ${HOME}/.ccache/
