@@ -79,7 +79,7 @@ jobs:
       CCACHE_HASH: ccache-${{ matrix.config.os }}-${{ matrix.config.build }}
       LAMMPS_COMPILE_NPROC: 2
       LAMMPS_CI_RUNNER: github
-      CCACHE_DIR: ~/.ccache
+      CCACHE_DIR: "${{ env.HOME }}/.ccache"
     steps:
       - name: Get time
         id: time
@@ -103,8 +103,9 @@ jobs:
             module load mpi
           fi
           pwd
+          echo $CCACHE_DIR
           ls -la
-          ls -la ~/.ccache/
+          ls -la ${HOME}/.ccache/
           ccache -s
           ccache -z
           export LAMMPS_DIR=$PWD
