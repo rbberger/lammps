@@ -105,7 +105,6 @@ jobs:
           pwd
           echo $CCACHE_DIR
           ls -la
-          ls -la $CCACHE_DIR/
           ccache -s
           ccache -z
           export LAMMPS_DIR=$PWD
