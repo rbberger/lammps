@@ -38,14 +38,13 @@ jobs:
       CCACHE_HASH: ccache-${{ matrix.config.os }}-${{ matrix.config.build }}
       LAMMPS_COMPILE_NPROC: 2
       LAMMPS_CI_RUNNER: github
-      CCACHE_DIR: ~/.ccache
     steps:
       - name: Get time
         id: time
         run: echo "::set-output name=time::$(date +%s)"
       - uses: actions/cache@v2
         with:
-          path: ~/.ccache
+          path: .ccache
           key: ${{ env.CCACHE_HASH }}-${{ steps.time.outputs.time }}
           restore-keys: ${{ env.CCACHE_HASH }}
       - uses: actions/checkout@master
@@ -80,14 +79,13 @@ jobs:
       CCACHE_HASH: ccache-${{ matrix.config.os }}-${{ matrix.config.build }}
       LAMMPS_COMPILE_NPROC: 2
       LAMMPS_CI_RUNNER: github
-      CCACHE_DIR: ~/.ccache
     steps:
       - name: Get time
         id: time
         run: echo "::set-output name=time::$(date +%s)"
       - uses: actions/cache@v2
         with:
-          path: ~/.ccache
+          path: .ccache
           key: ${{ env.CCACHE_HASH }}-${{ steps.time.outputs.time }}
           restore-keys: ${{ env.CCACHE_HASH }}
       - uses: actions/checkout@master
