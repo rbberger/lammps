@@ -18,7 +18,7 @@ jobs:
       - name: Generate HTML
         run: make -C doc -j 2 html
       - name: Generate PDF
-        run: make -C doc -j 2 PDF
+        run: make -C doc -j 2 pdf
       - name: Check Spelling
         run: make -C doc -j 2 spelling
 
