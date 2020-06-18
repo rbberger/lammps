@@ -30,8 +30,7 @@ jobs:
           apt install -y ninja-build
       - uses: actions/checkout@master
       - name: Configure
-        run: |
-          cmake -B build -G Ninja -D Python3_EXECUTABLE=$(which python) -S cmake
+        run: cmake -B build -G Ninja -D Python3_EXECUTABLE=$(which python) -S cmake
       - name: Test for ${{ matrix.config.test }}
         run: cmake --build build --target check-${{ matrix.config.test }}
 
