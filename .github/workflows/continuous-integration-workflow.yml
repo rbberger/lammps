@@ -9,6 +9,19 @@ on:
       - master
 
 jobs:
+  documentation:
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    container: "lammps/buildenv:${{ matrix.config.os }}"
+    steps:
+      - uses: actions/checkout@master
+      - name: Generate HTML
+        run: make -C doc -j 2 html
+      - name: Generate PDF
+        run: make -C doc -j 2 PDF
+      - name: Check Spelling
+        run: make -C doc -j 2 spelling
+
   style_tests:
     continue-on-error: true
     runs-on: ubuntu-latest
