@@ -12,6 +12,7 @@ jobs:
   style_tests:
     continue-on-error: true
     runs-on: ubuntu-latest
+    container: "lammps/buildenv:ubuntu18.04"
     steps:
       - uses: actions/checkout@master
       - name: Configure
