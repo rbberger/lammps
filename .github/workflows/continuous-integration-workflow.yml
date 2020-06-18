@@ -26,7 +26,7 @@ jobs:
         run: |
           mkdir -p build
           cd build
-          cmake ../cmake
+          cmake -D Python3_EXECUTABLE=$(which python) ../cmake
       - name: Test for whitespace
         run: make -C build VERBOSE=1 check-whitespace
       - name: Test for permission errors
