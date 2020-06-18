@@ -12,7 +12,7 @@ jobs:
   documentation:
     continue-on-error: true
     runs-on: ubuntu-latest
-    container: "lammps/buildenv:${{ matrix.config.os }}"
+    container: "lammps/buildenv:fedora32_mingw"
     steps:
       - uses: actions/checkout@master
       - name: Generate HTML
