@@ -10,10 +10,17 @@ on:
 
 jobs:
   style_tests:
-    continue-on-error: true
+    continue-on-error: false
     runs-on: ubuntu-latest
-    container: "lammps/buildenv:ubuntu18.04"
     steps:
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade pyyaml
       - uses: actions/checkout@master
       - name: Configure
         run: |
@@ -21,16 +28,12 @@ jobs:
           cd build
           cmake ../cmake
       - name: Test for whitespace
-        run: |
-          cd build
-          make check-whitespace
+        run: make -C build check-whitespace
       - name: Test for permission errors
-        run: |
-          cd build
-          make check-permissions
+        run: make -C build check-permissions
 
   unit_tests:
-    continue-on-error: true
+    continue-on-error: false
     strategy:
       matrix:
         config:
