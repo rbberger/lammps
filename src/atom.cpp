@@ -16,6 +16,7 @@
 #include <climits>
 #include <cstdlib>
 #include <cstring>
+#include <algorithm>
 #include <string>
 #include "style_atom.h"
 #include "atom_vec.h"
@@ -146,6 +147,12 @@ Atom::Atom(LAMMPS *lmp) : Pointers(lmp)
 
   cc = cc_flux = NULL;
   edpd_temp = edpd_flux = edpd_cv = NULL;
+
+  // USER-MESONT package
+
+  length = NULL;
+  buckling = NULL;
+  bond_nt = NULL;
 
   // USER-SMD package
 
@@ -294,6 +301,11 @@ Atom::~Atom()
   memory->destroy(desph);
   memory->destroy(cv);
   memory->destroy(vest);
+
+  // USER-MESONT package
+  memory->destroy(length);
+  memory->destroy(buckling);
+  memory->destroy(bond_nt);
 
   memory->destroy(contact_radius);
   memory->destroy(smd_data_9);
@@ -544,6 +556,12 @@ void Atom::peratom_create()
   add_peratom("cc",&cc,DOUBLE,1);
   add_peratom("cc_flux",&cc_flux,DOUBLE,1,1);         // set per-thread flag
 
+  // USER-MESONT package
+
+  add_peratom("length",&length,DOUBLE,0);
+  add_peratom("buckling",&buckling,INT,0);
+  add_peratom("bond_nt",&bond_nt,tagintsize,2);
+
   // USER-SPH package
 
   add_peratom("rho",&rho,DOUBLE,0);
@@ -669,6 +687,7 @@ void Atom::set_atomflag_defaults()
   sp_flag = 0;
   x0_flag = 0;
   smd_flag = damage_flag = 0;
+  mesont_flag = 0;
   contact_radius_flag = smd_data_9_flag = smd_stress_flag = 0;
   eff_plastic_strain_flag = eff_plastic_strain_rate_flag = 0;
 
@@ -2260,7 +2279,9 @@ void Atom::add_callback(int flag)
   for (ifix = 0; ifix < modify->nfix; ifix++)
     if (modify->fix[ifix] == NULL) break;
 
-  // add callback to lists, reallocating if necessary
+  // add callback to lists and sort, reallocating if necessary
+  // sorting is required in cases where fixes were replaced as it ensures atom
+  // data is read/written/transfered in the same order that fixes are called
 
   if (flag == 0) {
     if (nextra_grow == nextra_grow_max) {
@@ -2269,6 +2290,7 @@ void Atom::add_callback(int flag)
     }
     extra_grow[nextra_grow] = ifix;
     nextra_grow++;
+    std::sort(extra_grow, extra_grow + nextra_grow);
   } else if (flag == 1) {
     if (nextra_restart == nextra_restart_max) {
       nextra_restart_max += DELTA;
@@ -2276,6 +2298,7 @@ void Atom::add_callback(int flag)
     }
     extra_restart[nextra_restart] = ifix;
     nextra_restart++;
+    std::sort(extra_restart, extra_restart + nextra_restart);
   } else if (flag == 2) {
     if (nextra_border == nextra_border_max) {
       nextra_border_max += DELTA;
@@ -2283,6 +2306,7 @@ void Atom::add_callback(int flag)
     }
     extra_border[nextra_border] = ifix;
     nextra_border++;
+    std::sort(extra_border, extra_border + nextra_border);
   }
 }
 
@@ -2481,6 +2505,11 @@ void *Atom::extract(char *name)
   if (strcmp(name,"desph") == 0) return (void *) desph;
   if (strcmp(name,"cv") == 0) return (void *) cv;
   if (strcmp(name,"vest") == 0) return (void *) vest;
+
+  // USER-MESONT package
+  if (strcmp(name,"length") == 0) return (void *) length;
+  if (strcmp(name,"buckling") == 0) return (void *) buckling;
+  if (strcmp(name,"bond_nt") == 0) return (void *) bond_nt;
 
   if (strcmp(name, "contact_radius") == 0) return (void *) contact_radius;
   if (strcmp(name, "smd_data_9") == 0) return (void *) smd_data_9;

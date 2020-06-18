@@ -585,7 +585,7 @@ void AtomVec::unpack_comm(int n, int first, double *buf)
         if (cols == 0) {
           int *vec = *((int **) pdata);
           for (i = first; i < last; i++)
-            vec[i] = ubuf(buf[m++]).i;
+            vec[i] = (int) ubuf(buf[m++]).i;
         } else {
           int **array = *((int ***) pdata);
           for (i = first; i < last; i++)
@@ -1085,7 +1085,7 @@ void AtomVec::unpack_border(int n, int first, double *buf)
         if (cols == 0) {
           int *vec = *((int **) pdata);
           for (i = first; i < last; i++)
-            vec[i] = ubuf(buf[m++]).i;
+            vec[i] = (int) ubuf(buf[m++]).i;
         } else {
           int **array = *((int ***) pdata);
           for (i = first; i < last; i++)
@@ -2448,11 +2448,11 @@ int AtomVec::process_fields(char *str, const char *default_str, Method *method)
   }
 
   // tokenize words in both strings
-  Tokenizer words(str, " ");
-  Tokenizer def_words(default_str, " ");
+  std::vector<std::string> words = Tokenizer(str, " ").as_vector();
+  std::vector<std::string> def_words = Tokenizer(default_str, " ").as_vector();
 
-  int nfield = words.count();
-  int ndef   = def_words.count();
+  int nfield = words.size();
+  int ndef   = def_words.size();
 
   // process fields one by one, add to index vector
 

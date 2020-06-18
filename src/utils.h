@@ -142,7 +142,6 @@ namespace LAMMPS_NS {
     tagint tnumeric(const char *file, int line, const char *str,
                     bool do_abort, LAMMPS *lmp);
 
-
     /**
      * \brief Trim anything from '#' onward
      * \param line string that should be trimmed
@@ -153,18 +152,34 @@ namespace LAMMPS_NS {
     /**
      * \brief Count words in string
      * \param text string that should be searched
-     * \param seperators string containing characters that will be treated as whitespace
+     * \param separators string containing characters that will be treated as whitespace
      * \return number of words found
      */
-    size_t count_words(const std::string & text, const std::string & seperators = " \t\r\n\f");
+    size_t count_words(const std::string & text, const std::string & separators);
+
+    /**
+     * \brief Count words in string, ignore any whitespace matching " \t\r\n\f"
+     * \param text string that should be searched
+     * \param separators string containing characters that will be treated as whitespace
+     * \return number of words found
+     */
+    size_t count_words(const std::string & text);
+
+    /**
+     * \brief Count words in C-string, ignore any whitespace matching " \t\r\n\f"
+     * \param text string that should be searched
+     * \param separators string containing characters that will be treated as whitespace
+     * \return number of words found
+     */
+    size_t count_words(const char * text);
 
     /**
      * \brief Count words in a single line, trim anything from '#' onward
      * \param text string that should be trimmed and searched
-     * \param seperators string containing characters that will be treated as whitespace
+     * \param separators string containing characters that will be treated as whitespace
      * \return number of words found
      */
-    size_t trim_and_count_words(const std::string & text, const std::string & seperators = " \t\r\n\f");
+    size_t trim_and_count_words(const std::string & text, const std::string & separators = " \t\r\n\f");
 
     /**
      * \brief Check if string can be converted to valid integer
@@ -217,6 +232,14 @@ namespace LAMMPS_NS {
      * \return DATE field if present
      */
     std::string get_potential_date(const std::string & path, const std::string & potential_name);
+
+    /**
+     * \brief Read potential file and return UNITS field if it is present
+     * \param path file path
+     * \param potential_name name of potential that is being read
+     * \return UNITS field if present
+     */
+    std::string get_potential_units(const std::string & path, const std::string & potential_name);
   }
 }
 

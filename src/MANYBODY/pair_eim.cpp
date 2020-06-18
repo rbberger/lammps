@@ -642,7 +642,7 @@ void PairEIM::file2array()
 
   delete [] negativity;
   delete [] q0;
-  delete [] cutforcesq;
+  memory->destroy(cutforcesq);
   negativity = new double[ntypes+1];
   q0 = new double[ntypes+1];
   memory->create(cutforcesq,ntypes+1,ntypes+1,"pair:cutforcesq");
@@ -1123,7 +1123,7 @@ char * EIMPotentialFileReader::next_line(FILE * fp) {
       concat = false;
     }
 
-    nwords = utils::count_words(line);
+    nwords += utils::count_words(&line[n]);
 
     // skip line if blank
     if (nwords > 0) {
