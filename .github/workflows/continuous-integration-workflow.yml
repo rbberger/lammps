@@ -54,7 +54,7 @@ jobs:
     steps:
       - name: Get time
         id: time
-        run: echo "::set-output name=time::$(date +%s)"
+        run: echo "::set-output name=time::$(date +%s)"
       - uses: actions/checkout@master
       - name: Install Deps
         uses: actions/checkout@master
