@@ -27,14 +27,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install --upgrade pyyaml
+          apt install -y ninja-build
       - uses: actions/checkout@master
       - name: Configure
         run: |
-          mkdir -p build
-          cd build
-          cmake -D Python3_EXECUTABLE=$(which python) ../cmake
+          cmake -B build -G Ninja -D Python3_EXECUTABLE=$(which python) -S cmake
       - name: Test for ${{ matrix.config.test }}
-        run: make -C build check-${{ matrix.config.test }}
+        run: cmake --build build --target check-${{ matrix.config.test }}
 
   unit_tests:
     continue-on-error: true
@@ -56,7 +55,7 @@ jobs:
     steps:
       - name: Get time
         id: time
-        run: echo "::set-output name=time::$(date +%s)"
+        run: echo "::set-output name=time::$(date +%s)"
       - uses: actions/checkout@master
       - name: Install Deps
         uses: actions/checkout@master
