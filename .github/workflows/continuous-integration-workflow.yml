@@ -28,9 +28,9 @@ jobs:
           cd build
           cmake ../cmake
       - name: Test for whitespace
-        run: make -C build check-whitespace
+        run: make -C build VERBOSE=1 check-whitespace
       - name: Test for permission errors
-        run: make -C build check-permissions
+        run: make -C build VERBOSE=1 check-permissions
 
   unit_tests:
     continue-on-error: false
