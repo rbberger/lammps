@@ -9,44 +9,6 @@ on:
       - master
 
 jobs:
-  documentation:
-    continue-on-error: true
-    runs-on: ubuntu-latest
-    container: "lammps/buildenv:fedora32_mingw"
-    steps:
-      - uses: actions/checkout@master
-      - name: Generate HTML
-        run: make -C doc -j 2 html
-      - name: Generate PDF
-        run: make -C doc -j 2 pdf
-      - name: Check Spelling
-        run: make -C doc -j 2 spelling
-
-  style_tests:
-    continue-on-error: true
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        config:
-         - { test: whitespace }
-         - { test: permissions }
-
-    steps:
-      - name: Set up Python 3.6
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.6
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install --upgrade pyyaml
-          sudo apt install -y ninja-build
-      - uses: actions/checkout@master
-      - name: Configure
-        run: cmake -B build -G Ninja -D Python3_EXECUTABLE=$(which python) -S cmake
-      - name: Test for ${{ matrix.config.test }}
-        run: cmake --build build --target check-${{ matrix.config.test }}
-
   unit_tests:
     continue-on-error: true
     strategy:
