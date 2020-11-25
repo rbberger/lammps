@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - configure-github-actions
     paths:
       - 'doc/*'
 

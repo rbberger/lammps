@@ -2,7 +2,8 @@ name: style
 on:
   push:
     branches:
-      - master
+     - master
+     - configure-github-actions
 
 jobs:
   check_whitespace:
