@@ -36,7 +36,7 @@ class Variable : protected Pointers {
   int equalstyle(int);
   int atomstyle(int);
   int vectorstyle(int);
-  char *pythonstyle(char *, char *);
+  char *pythonstyle(const char *, const char *);
   int internalstyle(int);
 
   char *retrieve(const char *);

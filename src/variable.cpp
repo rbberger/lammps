@@ -831,7 +831,7 @@ int Variable::vectorstyle(int ivar)
    return nullptr if not a match
 ------------------------------------------------------------------------- */
 
-char *Variable::pythonstyle(char *name, char *funcname)
+char *Variable::pythonstyle(const char *name, const char *funcname)
 {
   int ivar = find(name);
   if (ivar < 0) return nullptr;

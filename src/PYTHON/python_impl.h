@@ -18,6 +18,7 @@
 #include "lmppython.h"
 #include <vector>
 #include <memory>
+#include <Python.h>  // IWYU pragma: export
 
 namespace LAMMPS_NS {
 
@@ -42,20 +43,46 @@ class PythonImpl : protected Pointers, public PythonInterface {
   char *ostr,*format;
   void *pyMain;
 
+  enum class PyValueType {NONE,INT,DOUBLE,STRING,PTR};
+
+  struct PyValue {
+    int i;
+    double d;
+    char * s;
+    void * p;
+  };
+
+  class PyFuncValue {
+    PyValueType type;
+    PyValue value;
+    bool is_variable;
+    class LAMMPS * lmp;
+
+  public:
+    PyFuncValue(class LAMMPS* lmp);
+    virtual ~PyFuncValue();
+
+    void set_value(int);
+    void set_value(double);
+    void set_value(const char *);
+    void set_pointer(void *);
+    void set_variable(const char *, PyValueType vtype);
+
+    PyObject * get_value();
+  };
+
   struct PyFunc {
-    char *name;
+    std::string name;
     int ninput,noutput;
-    int *itype,*ivarflag;
-    int *ivalue;
-    double *dvalue;
-    char **svalue;
-    int otype;
+    std::vector<PyFuncValue> inputs;
+    PyValueType otype;
     char *ovarname;
     char *longstr;
     int length_longstr;
-    void *pFunc;
+    PyObject *pFunc;
+    class LAMMPS * lmp;
 
-    PyFunc(const char * name, int ninput, int noutput);
+    PyFunc(class LAMMPS* lmp, const std::string & name, int ninput, int noutput);
     ~PyFunc();
   };
 
