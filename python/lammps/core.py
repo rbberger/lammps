@@ -746,11 +746,22 @@ class lammps(object):
     :type name:  string
     :param dtype: data type of the returned data (see :ref:`py_datatype_constants`)
     :type dtype:  int, optional
-    :return: value of the property or None
-    :rtype: int, float, or NoneType
+    :return: value of the property or list of values or None
+    :rtype: int, float, list, or NoneType
     """
+
     if dtype == LAMMPS_AUTODETECT:
       dtype = self.extract_global_datatype(name)
+
+    # set length of vector for items that are not a scalar
+    vec_dict = { 'boxlo':3, 'boxhi':3, 'sublo':3, 'subhi':3,
+                 'sublo_lambda':3, 'subhi_lambda':3, 'periodicity':3 }
+    if name in vec_dict:
+      veclen = vec_dict[name]
+    elif name == 'respa_dt':
+      veclen = self.extract_global('respa_levels',LAMMPS_INT)
+    else:
+      veclen = 1
 
     if name: name = name.encode()
     else: return None
@@ -766,13 +777,18 @@ class lammps(object):
       target_type = float
     elif dtype == LAMMPS_STRING:
       self.lib.lammps_extract_global.restype = c_char_p
-      target_type = lambda x: str(x, 'ascii')
 
     ptr = self.lib.lammps_extract_global(self.lmp, name)
     if ptr:
-      return target_type(ptr[0])
+      if dtype == LAMMPS_STRING:
+        return ptr.decode('utf-8')
+      if veclen > 1:
+        result = []
+        for i in range(0,veclen):
+          result.append(target_type(ptr[i]))
+        return result
+      else: return target_type(ptr[0])
     return None
-
 
   # -------------------------------------------------------------------------
   # extract per-atom info datatype
