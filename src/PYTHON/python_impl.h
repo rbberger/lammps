@@ -16,6 +16,8 @@
 
 #include "pointers.h"
 #include "lmppython.h"
+#include <vector>
+#include <memory>
 
 namespace LAMMPS_NS {
 
@@ -52,13 +54,14 @@ class PythonImpl : protected Pointers, public PythonInterface {
     char *longstr;
     int length_longstr;
     void *pFunc;
+
+    PyFunc(const char * name, int ninput, int noutput);
+    ~PyFunc();
   };
 
-  PyFunc *pfuncs;
-  int nfunc;
+  std::vector<std::shared_ptr<PyFunc>> pfuncs;
 
   int create_entry(char *);
-  void deallocate(int);
 };
 
 }
