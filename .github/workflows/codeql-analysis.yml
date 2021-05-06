@@ -62,6 +62,7 @@ jobs:
               ../cmake
         cmake --build . --parallel 2
         ccache -s
+        date
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
