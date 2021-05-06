@@ -29,7 +29,8 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ env.CCACHE_DIR }}
-        key: macos-ccache
+        key: macos-ccache-${{ github.sha }}
+        restore-keys: macos-ccache-
 
     - name: Building LAMMPS via CMake
       shell: bash

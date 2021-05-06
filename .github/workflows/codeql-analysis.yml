@@ -48,13 +48,13 @@ jobs:
       with:
         path: ${{ env.CCACHE_DIR }}
         key: ccache-codeql-${{ matrix.language }}
+        restore-keys: ccache-codeql-
 
     - name: Building LAMMPS via CMake
       if: ${{ matrix.language == 'cpp' }}
       shell: bash
       working-directory: build
       run: |
-        ccache -s
         ccache -z
         cmake -C ../cmake/presets/most.cmake \
               -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
