@@ -10,8 +10,6 @@ jobs:
     name: Analyze
     if: ${{ github.repository == 'rbberger/lammps' }}
     runs-on: ubuntu-latest
-    env:
-      CCACHE_DIR: ${{ github.workspace }}/.ccache
 
     strategy:
       fail-fast: false
@@ -19,10 +17,6 @@ jobs:
         language: ['cpp', 'python']
 
     steps:
-    - name: install ccache
-      if: ${{ matrix.language == 'cpp' }}
-      run: sudo apt-get update && sudo apt-get install -y ccache
-
     - name: Checkout repository
       uses: actions/checkout@v2
       with:
@@ -42,27 +36,13 @@ jobs:
       if: ${{ matrix.language == 'cpp' }}
       run: mkdir build
 
-    - name: Set up ccache
-      if: ${{ matrix.language == 'cpp' }}
-      uses: actions/cache@v2
-      with:
-        path: ${{ env.CCACHE_DIR }}
-        key: ccache-codeql-${{ matrix.language }}
-        restore-keys: ccache-codeql-
-
     - name: Building LAMMPS via CMake
       if: ${{ matrix.language == 'cpp' }}
       shell: bash
       working-directory: build
       run: |
-        ccache -z
-        cmake -C ../cmake/presets/most.cmake \
-              -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
-              -D CMAKE_C_COMPILER_LAUNCHER=ccache \
-              ../cmake
+        cmake -C ../cmake/presets/most.cmake ../cmake
         cmake --build . --parallel 2
-        ccache -s
-        date
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
