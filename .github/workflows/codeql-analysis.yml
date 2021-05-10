@@ -31,6 +31,7 @@ jobs:
       uses: github/codeql-action/init@v1
       with:
         languages: ${{ matrix.language }}
+        config-file: ./.github/codeql/${{ matrix.language }}.yml
 
     - name: Create Build Environment
       if: ${{ matrix.language == 'cpp' }}
