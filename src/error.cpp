@@ -12,6 +12,8 @@
    See the README file in the top-level LAMMPS directory.
 ------------------------------------------------------------------------- */
 
+#include "fmt/format.h"
+#include "fmt/color.h"
 #include "error.h"
 
 #include "accelerator_kokkos.h"
@@ -61,7 +63,7 @@ void Error::universe_all(const std::string &file, int line, const std::string &s
   } catch (fmt::format_error &e) {
   }
   if (universe->me == 0) {
-    if (universe->uscreen)  fputs(mesg.c_str(),universe->uscreen);
+    if (universe->uscreen)  fmt::print(universe->uscreen, fmt::emphasis::bold | fg(fmt::color::red), mesg);
     if (universe->ulogfile) fputs(mesg.c_str(),universe->ulogfile);
   }
 
@@ -150,7 +152,7 @@ void Error::all(const std::string &file, int line, const std::string &str)
                           truncpath(file),line,lastcmd);
     } catch (fmt::format_error &e) {
     }
-    utils::logmesg(lmp,mesg);
+    utils::logmesg(fmt::emphasis::bold | fg(fmt::color::red), lmp, mesg);
   }
 
 #ifdef LAMMPS_EXCEPTIONS
@@ -196,7 +198,7 @@ void Error::one(const std::string &file, int line, const std::string &str)
   if (input && input->line) lastcmd = input->line;
   std::string mesg = fmt::format("ERROR on proc {}: {} ({}:{})\n",
                                  me,str,truncpath(file),line,lastcmd);
-  utils::logmesg(lmp,mesg);
+  utils::logmesg(fmt::emphasis::bold | fg(fmt::color::red), lmp, mesg);
 
   if (universe->nworlds > 1)
     if (universe->uscreen)

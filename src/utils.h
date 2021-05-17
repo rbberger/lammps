@@ -17,6 +17,7 @@
 /*! \file utils.h */
 
 #include "fmt/format.h"
+#include "fmt/color.h"
 #include "lmptype.h"
 
 #include <mpi.h>
@@ -75,6 +76,13 @@ namespace utils {
      *  \param mesg   string with message to be printed */
 
   void logmesg(LAMMPS *lmp, const std::string &mesg);
+
+  /** \overload
+     *
+     *  \param lmp    pointer to LAMMPS class instance
+     *  \param style  formatting when printed on screen
+     *  \param mesg   string with message to be printed */
+  void logmesg(const fmt::text_style &style, LAMMPS *lmp, const std::string &mesg);
 
   /** Return a string representing the current system error status
      *

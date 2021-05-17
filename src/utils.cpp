@@ -125,9 +125,16 @@ std::string utils::strfind(const std::string &text, const std::string &pattern)
 
 void utils::logmesg(LAMMPS *lmp, const std::string &mesg)
 {
-  if (lmp->screen) fputs(mesg.c_str(), lmp->screen);
-  if (lmp->logfile) fputs(mesg.c_str(), lmp->logfile);
+  if (lmp->screen) fmt::print(lmp->screen, mesg);
+  if (lmp->logfile) fmt::print(lmp->logfile, mesg);
 }
+
+void utils::logmesg(const fmt::text_style & style, LAMMPS *lmp, const std::string &mesg)
+{
+  if (lmp->screen) fmt::print(lmp->screen, style, mesg);
+  if (lmp->logfile) fmt::print(lmp->logfile, mesg);
+}
+
 
 void utils::fmtargs_logmesg(LAMMPS *lmp, fmt::string_view format, fmt::format_args args)
 {
