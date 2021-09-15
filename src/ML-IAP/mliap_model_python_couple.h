@@ -1,4 +1,4 @@
-/* -*- c++ -*- ----------------------------------------------------------
+/* -*- c -*- ------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
    Steve Plimpton, sjplimp@sandia.gov
@@ -11,32 +11,20 @@
    See the README file in the top-level LAMMPS directory.
 ------------------------------------------------------------------------- */
 
-#ifndef LMP_PYTHON_UTILS_H
-#define LMP_PYTHON_UTILS_H
-
-#include <Python.h>
-
-namespace LAMMPS_NS {
-
-namespace PyUtils {
-
-  class GIL {
-    PyGILState_STATE gstate;
-
-   public:
-    GIL() : gstate(PyGILState_Ensure()) {}
-    ~GIL() { PyGILState_Release(gstate); }
-  };
-
-  static void Print_Errors()
-  {
-    PyErr_Print();
-    PyErr_Clear();
-  }
+#ifndef LAMMPS_MLIAP_COUPLE_LIBRARY_H
+#define LAMMPS_MLIAP_COUPLE_LIBRARY_H
 
 
-}    // namespace PyUtils
+/* Ifdefs to allow this file to be included in C and C++ programs */
 
-}    // namespace LAMMPS_NS
-
+#ifdef __cplusplus
+extern "C" {
 #endif
+
+void lammps_mliap_load_model(void *handle, void * model);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* LAMMPS_MLIAP_COUPLE_LIBRARY_H */

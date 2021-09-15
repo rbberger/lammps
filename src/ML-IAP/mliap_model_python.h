@@ -20,7 +20,11 @@ namespace LAMMPS_NS {
 
 class MLIAPModelPython : public MLIAPModel {
  public:
-  MLIAPModelPython(LAMMPS *, char * = NULL);
+  static void register_model(class LAMMPS *, MLIAPModelPython *);
+  static void deregister_model(class LAMMPS *, MLIAPModelPython *);
+  static void set_unloaded_model(class LAMMPS *, void *);
+
+  MLIAPModelPython(LAMMPS *, char * = nullptr);
   ~MLIAPModelPython();
   virtual int get_nparams();
   virtual int get_gamma_nnz(class MLIAPData *);
@@ -35,8 +39,14 @@ class MLIAPModelPython : public MLIAPModel {
 
  protected:
   virtual void read_coeffs(char *);
+  void * np_darray_from_buffer_2D(size_t m, size_t n, double * buffer);
+  void * np_darray_from_buffer_1D(size_t n, double * buffer);
+  void * np_iarray_from_buffer_2D(size_t m, size_t n, int * buffer);
+  void * np_iarray_from_buffer_1D(size_t n, int * buffer);
 
  private:
+  void * mliap_module;
+  void * python_model;
 };
 
 }    // namespace LAMMPS_NS

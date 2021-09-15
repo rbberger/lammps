@@ -83,7 +83,6 @@ lmp = lammps.lammps(cmdargs=['-echo','both'])
 
 # Before defining the pair style, one must do the following:
 import lammps.mliap
-lammps.mliap.activate_mliappy(lmp)
 # Otherwise, when running lammps in library mode,
 # you will get an error:
 # "ERROR: Loading MLIAPPY coupling module failure."
@@ -98,7 +97,7 @@ import torch
 model = torch.load('Ta06A.mliap.pytorch.model.pt')
 
 # Connect the PyTorch model to the mliap pair style.
-lammps.mliap.load_model(model)
+lammps.mliap.load_model(lmp, model)
   
 # run the simulation with the mliap pair style
 lmp.commands_string(after_loading)

@@ -22,38 +22,75 @@
 #include "error.h"
 #include "lmppython.h"
 #include "mliap_data.h"
-#include "mliap_model_python_couple.h"
 #include "pair_mliap.h"
 #include "python_compat.h"
 #include "utils.h"
 
 #include <Python.h>
+#include <map>
+#include <deque>
+#include <algorithm>
+
+#include "python_utils.h"
 
 using namespace LAMMPS_NS;
+
+/* ---------------------------------------------------------------------- */
+
+static std::map<LAMMPS*, std::deque<MLIAPModelPython*>> UNLOADED_MODELS;
+
+void MLIAPModelPython::register_model(LAMMPS * lmp, MLIAPModelPython * model)
+{
+  UNLOADED_MODELS[lmp].push_back(model);
+}
+
+void MLIAPModelPython::deregister_model(LAMMPS * lmp, MLIAPModelPython * model)
+{
+  auto it = std::find(UNLOADED_MODELS[lmp].begin(), UNLOADED_MODELS[lmp].end(), model);
+  if (it != UNLOADED_MODELS[lmp].end()) {
+    UNLOADED_MODELS[lmp].erase(it);
+  }
+}
+
+void MLIAPModelPython::set_unloaded_model(LAMMPS * lmp, void * py_model)
+{
+  if (UNLOADED_MODELS[lmp].size() == 0) {
+    lmp->error->all(FLERR, "No model in the waiting area.");
+  } else if (UNLOADED_MODELS[lmp].size() > 1) {
+    lmp->error->all(FLERR, "Model is amibguous, more than one model in waiting area.");
+  }
+  
+  PyUtils::GIL lock;
+  MLIAPModelPython* mliap_model_python = UNLOADED_MODELS[lmp].front();
+  UNLOADED_MODELS[lmp].pop_front();
+  PyObject * python_model = (PyObject*)py_model;
+  Py_XINCREF(python_model);
+  mliap_model_python->python_model = py_model;
+  mliap_model_python->connect_param_counts();
+}
 
 /* ---------------------------------------------------------------------- */
 
 MLIAPModelPython::MLIAPModelPython(LAMMPS *lmp, char *coefffilename) :
     MLIAPModel(lmp, coefffilename)
 {
+  python_model = nullptr;
   model_loaded = 0;
   python->init();
-  PyGILState_STATE gstate = PyGILState_Ensure();
+  PyUtils::GIL lock;
 
   PyObject *pyMain = PyImport_AddModule("__main__");
 
   if (!pyMain) {
-    PyGILState_Release(gstate);
     error->all(FLERR, "Could not initialize embedded Python");
   }
 
-  PyObject *coupling_module = PyImport_ImportModule("mliap_model_python_couple");
+  mliap_module = PyImport_ImportModule("lammps.mliap");
 
-  if (!coupling_module) {
+  if (!mliap_module) {
     PyErr_Print();
     PyErr_Clear();
-    PyGILState_Release(gstate);
-    error->all(FLERR, "Loading MLIAPPY coupling module failure.");
+    error->all(FLERR, "Loading MLIAPPY module failure.");
   }
   // Recipe from lammps/src/pair_python.cpp :
   // add current directory to PYTHONPATH
@@ -63,18 +100,22 @@ MLIAPModelPython::MLIAPModelPython(LAMMPS *lmp, char *coefffilename) :
   // if LAMMPS_POTENTIALS environment variable is set, add it to PYTHONPATH as well
   const char *potentials_path = getenv("LAMMPS_POTENTIALS");
   if (potentials_path != NULL) { PyList_Append(py_path, PY_STRING_FROM_STRING(potentials_path)); }
-  PyGILState_Release(gstate);
 
   if (coefffilename) read_coeffs(coefffilename);
 
   nonlinearflag = 1;
+  MLIAPModelPython::register_model(lmp, this);
 }
 
 /* ---------------------------------------------------------------------- */
 
 MLIAPModelPython::~MLIAPModelPython()
 {
-  MLIAPPY_unload_model(this);
+  PyUtils::GIL lock;
+  PyObject * py_model = (PyObject*)python_model;
+  Py_CLEAR(py_model);
+  python_model = nullptr;
+  MLIAPModelPython::deregister_model(lmp, this);
 }
 
 /* ----------------------------------------------------------------------
@@ -88,16 +129,22 @@ int MLIAPModelPython::get_nparams()
 
 void MLIAPModelPython::read_coeffs(char *fname)
 {
-  PyGILState_STATE gstate = PyGILState_Ensure();
+  PyUtils::GIL lock;
+  bool loaded = false;
 
-  int loaded = MLIAPPY_load_model(this, fname);
-  if (PyErr_Occurred()) {
+  PyObject * MLIAPPY_load_model = PyObject_GetAttrString((PyObject*)mliap_module, "MLIAPPY_load_model");
+  PyObject * model = PyObject_CallFunction(MLIAPPY_load_model, (char *)"s", fname);
+
+  if(!model || PyErr_Occurred()) {
     PyErr_Print();
     PyErr_Clear();
-    PyGILState_Release(gstate);
     error->all(FLERR, "Loading python model failure.");
   }
-  PyGILState_Release(gstate);
+
+  if(model != Py_None) {
+    loaded = true;
+    python_model = model;
+  }
 
   if (loaded) {
     this->connect_param_counts();
@@ -109,18 +156,28 @@ void MLIAPModelPython::read_coeffs(char *fname)
 // Finalize loading of the model.
 void MLIAPModelPython::connect_param_counts()
 {
-  PyGILState_STATE gstate = PyGILState_Ensure();
-  nelements = MLIAPPY_nelements(this);
-  nparams = MLIAPPY_nparams(this);
-  ndescriptors = MLIAPPY_ndescriptors(this);
+  PyUtils::GIL lock;
+  PyObject * mliap_python_model = (PyObject*)python_model;
+
+  PyObject * py_n_elements = PyObject_GetAttrString(mliap_python_model, "n_elements");
+  PyObject * py_n_params = PyObject_GetAttrString(mliap_python_model, "n_params");
+  PyObject * py_n_descriptors = PyObject_GetAttrString(mliap_python_model, "n_descriptors");
+
+  
+  nelements = (int)PyLong_AsLong(py_n_elements);
+  nparams = (int)PyLong_AsLong(py_n_params);
+  ndescriptors = (int)PyLong_AsLong(py_n_descriptors);
+
+  Py_CLEAR(py_n_elements);
+  Py_CLEAR(py_n_params);
+  Py_CLEAR(py_n_descriptors);
+
 
   if (PyErr_Occurred()) {
     PyErr_Print();
     PyErr_Clear();
-    PyGILState_Release(gstate);
     error->all(FLERR, "Loading python model failure.");
   }
-  PyGILState_Release(gstate);
   model_loaded = 1;
   utils::logmesg(lmp, "Loading python model complete.\n");
 }
@@ -134,16 +191,84 @@ void MLIAPModelPython::compute_gradients(MLIAPData *data)
 {
   if (not model_loaded) { error->all(FLERR, "Model not loaded."); }
 
-  PyGILState_STATE gstate = PyGILState_Ensure();
-  MLIAPPY_compute_gradients(this, data);
+  PyUtils::GIL lock;
+
+  PyObject * py_model = (PyObject*)python_model;
+
+  int n_d = data->ndescriptors;
+  int n_a = data->nlistatoms;
+
+  // Make numpy arrays from pointers
+  PyObject * beta_np = (PyObject*)np_darray_from_buffer_2D(n_a, n_d, &data->betas[0][0]);
+  PyObject * desc_np = (PyObject*)np_darray_from_buffer_2D(n_a, n_d, &data->descriptors[0][0]);
+  PyObject * elem_np = (PyObject*)np_iarray_from_buffer_1D(n_a, &data->ielems[0]);
+  PyObject * en_np = (PyObject*)np_darray_from_buffer_1D(n_a, &data->eatoms[0]);
+
+  // Invoke python model on numpy arrays.
+  PyObject_CallFunction(py_model, (char *)"OOOO", elem_np, desc_np, beta_np, en_np);
+
+  // Get the total energy from the atom energy.
+  double total_energy = 0.0;
+  const double * eatoms = data->eatoms;
+
+  for(int i = 0; i < n_a; ++i) {
+    total_energy += eatoms[i]; 
+  }
+
+  data->energy = total_energy;
+
+  Py_CLEAR(beta_np);
+  Py_CLEAR(desc_np);
+  Py_CLEAR(elem_np);
+  Py_CLEAR(en_np);
+
   if (PyErr_Occurred()) {
     PyErr_Print();
     PyErr_Clear();
-    PyGILState_Release(gstate);
     error->all(FLERR, "Running python model failure.");
   }
-  PyGILState_Release(gstate);
 }
+
+void * MLIAPModelPython::np_darray_from_buffer_2D(size_t m, size_t n, double * buffer) {
+  PyObject * mliappy = (PyObject*)mliap_module;
+  PyObject * bufferPtr = PY_VOID_POINTER(buffer);
+  PyObject * double_array = PyObject_GetAttrString(mliappy, "double_array");
+  PyObject * result = PyObject_CallFunction(double_array, (char *)"Oii", bufferPtr, m, n);
+  Py_CLEAR(bufferPtr);
+  Py_CLEAR(double_array);
+  return result;
+}
+
+void * MLIAPModelPython::np_darray_from_buffer_1D(size_t n, double * buffer) {
+  PyObject * mliappy = (PyObject*)mliap_module;
+  PyObject * bufferPtr = PY_VOID_POINTER(buffer);
+  PyObject * double_array = PyObject_GetAttrString(mliappy, "double_array");
+  PyObject * result = PyObject_CallFunction(double_array, (char *)"Oi", bufferPtr, n);
+  Py_CLEAR(bufferPtr);
+  Py_CLEAR(double_array);
+  return result;
+}
+
+void * MLIAPModelPython::np_iarray_from_buffer_2D(size_t m, size_t n, int * buffer) {
+  PyObject * mliappy = (PyObject*)mliap_module;
+  PyObject * bufferPtr = PY_VOID_POINTER(buffer);
+  PyObject * int_array = PyObject_GetAttrString(mliappy, "int_array");
+  PyObject * result = PyObject_CallFunction(int_array, (char *)"Oii", bufferPtr, m, n);
+  Py_CLEAR(bufferPtr);
+  Py_CLEAR(int_array);
+  return result;
+}
+
+void * MLIAPModelPython::np_iarray_from_buffer_1D(size_t n, int * buffer) {
+  PyObject * mliappy = (PyObject*)mliap_module;
+  PyObject * bufferPtr = PY_VOID_POINTER(buffer);
+  PyObject * int_array = PyObject_GetAttrString(mliappy, "int_array");
+  PyObject * result = PyObject_CallFunction(int_array, (char *)"Oi", bufferPtr, n);
+  Py_CLEAR(bufferPtr);
+  Py_CLEAR(int_array);
+  return result;
+}
+
 
 /* ----------------------------------------------------------------------
    Calculate model double gradients w.r.t descriptors and parameters
