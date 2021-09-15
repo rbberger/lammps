@@ -3,7 +3,6 @@ import pickle
 import sys
 from ctypes import POINTER, c_void_p, c_char_p, c_double, c_int, c_int32, c_int64, cast, py_object, pythonapi
 
-LOADED_MODELS = {}
 
 def load_model(lmp, model):
     lmp.lib.lammps_mliap_load_model.argtypes = [c_void_p, py_object]
