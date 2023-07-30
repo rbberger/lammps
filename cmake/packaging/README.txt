@@ -31,6 +31,20 @@ these steps:
    Note, you don't have to type this in new terminals, since they will apply
    the changes from .zprofile automatically.
 
-5. Try running LAMMPS
+   Note: the above assumes you use the default shell (zsh) that comes with
+   MacOS. If you customized MacOS to use a different shell, you'll need to modify
+   that shell's init file (.cshrc, .bashrc, etc.) instead with appropiate commands
+   to modify the same environment variables.
+
+5. Try running LAMMPS (which might fail, see step 6)
 
    lmp -i $LAMMPS_BENCH_DIR/in.lj
+
+6. Allow lmp executable to run in MacOS Security settings
+
+   MacOS will most likely block the initial run of the lmp executable, since it
+   was downloaded from the internet and is missing a known signature from an
+   identified developer. Go to "Settings" and search for "Security settings". It
+   should display a message that "lmp" was blocked. Press "Open anyway", which
+   might prompt you for your admin credentials. Afterwards lmp should now work as
+   expected.
