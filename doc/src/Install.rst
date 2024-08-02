@@ -27,6 +27,7 @@ you **must** build LAMMPS from the source code.
    Install_mac
    Install_windows
    Install_conda
+   Install_spack
 
    Install_tarball
    Install_git
