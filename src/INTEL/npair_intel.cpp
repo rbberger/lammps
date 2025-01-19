@@ -237,10 +237,6 @@ void NPairIntel::bin_newton(const int offload, NeighList *list,
     signal(tag)
   #endif
   {
-    #if defined(__MIC__) && defined(_LMP_INTEL_OFFLOAD)
-    *timer_compute = MIC_Wtime();
-    #endif
-
     #ifdef _LMP_INTEL_OFFLOAD
     overflow[LMP_LOCAL_MIN] = astart;
     overflow[LMP_LOCAL_MAX] = aend - 1;
@@ -847,9 +843,6 @@ void NPairIntel::bin_newton(const int offload, NeighList *list,
       }
       #endif
     } // end omp
-    #if defined(__MIC__) && defined(_LMP_INTEL_OFFLOAD)
-    *timer_compute = MIC_Wtime() - *timer_compute;
-    #endif
   } // end offload
 
   #ifdef _LMP_INTEL_OFFLOAD

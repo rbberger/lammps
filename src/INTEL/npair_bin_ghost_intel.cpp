@@ -245,10 +245,6 @@ void NPairFullBinGhostIntel::fbi(const int offload, NeighList * list,
     signal(tag)
   #endif
   {
-    #if defined(__MIC__) && defined(_LMP_INTEL_OFFLOAD)
-    *timer_compute = MIC_Wtime();
-    #endif
-
     #ifdef _LMP_INTEL_OFFLOAD
     overflow[LMP_LOCAL_MIN] = 0;
     overflow[LMP_LOCAL_MAX] = aend - 1;
@@ -577,9 +573,6 @@ void NPairFullBinGhostIntel::fbi(const int offload, NeighList * list,
       }
       #endif
     } // end omp
-    #if defined(__MIC__) && defined(_LMP_INTEL_OFFLOAD)
-    *timer_compute = MIC_Wtime() - *timer_compute;
-    #endif
   } // end offload
 
   #ifdef _LMP_INTEL_OFFLOAD

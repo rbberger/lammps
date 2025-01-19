@@ -183,7 +183,7 @@ styles available in LAMMPS.  They are also listed in more compact form
 on the :doc:`Commands fix <Commands_fix>` doc page.
 
 There are also additional accelerated fix styles included in the
-LAMMPS distribution for faster performance on CPUs, GPUs, and KNLs.
+LAMMPS distribution for faster performance on CPUs and GPUs.
 The individual style names on the :doc:`Commands fix <Commands_fix>` doc
 page are followed by one or more of (g,i,k,o,t) to indicate which
 accelerated styles exist.

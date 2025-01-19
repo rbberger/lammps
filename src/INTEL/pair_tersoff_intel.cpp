@@ -306,12 +306,6 @@ void PairTersoffIntel::eval(const int offload, const int vflag,
     signal(f_start)
   #endif
   {
-    #ifdef _LMP_INTEL_OFFLOAD
-    #ifdef __MIC__
-    *timer_compute = MIC_Wtime();
-    #endif
-    #endif
-
     IP_PRE_repack_for_offload(1, separate_flag, nlocal, nall,
                               f_stride, x, 0);
 
@@ -372,12 +366,6 @@ void PairTersoffIntel::eval(const int offload, const int vflag,
       ev_global[6] = ov4;
       ev_global[7] = ov5;
     }
-
-    #ifdef _LMP_INTEL_OFFLOAD
-    #ifdef __MIC__
-    *timer_compute = MIC_Wtime() - *timer_compute;
-    #endif
-    #endif
   } // end of offload region
 
   if (offload)

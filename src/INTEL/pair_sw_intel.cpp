@@ -240,10 +240,6 @@ void PairSWIntel::eval(const int offload, const int vflag,
     signal(f_start)
   #endif
   {
-    #if defined(__MIC__) && defined(_LMP_INTEL_OFFLOAD)
-    *timer_compute = MIC_Wtime();
-    #endif
-
     IP_PRE_repack_for_offload(1, separate_flag, nlocal, nall,
                               f_stride, x, 0);
 
@@ -550,9 +546,6 @@ void PairSWIntel::eval(const int offload, const int vflag,
       ev_global[6] = ov4;
       ev_global[7] = ov5;
     }
-    #if defined(__MIC__) && defined(_LMP_INTEL_OFFLOAD)
-    *timer_compute = MIC_Wtime() - *timer_compute;
-    #endif
   } // end offload
   if (offload)
     fix->stop_watch(TIME_OFFLOAD_LATENCY);
@@ -662,10 +655,6 @@ void PairSWIntel::eval(const int offload, const int vflag,
     signal(f_start)
   #endif
   {
-    #if defined(__MIC__) && defined(_LMP_INTEL_OFFLOAD)
-    *timer_compute = MIC_Wtime();
-    #endif
-
     IP_PRE_repack_for_offload(1, separate_flag, nlocal, nall,
                               f_stride, x, 0);
 
@@ -1066,9 +1055,6 @@ void PairSWIntel::eval(const int offload, const int vflag,
       ev_global[6] = ov4;
       ev_global[7] = ov5;
     }
-    #if defined(__MIC__) && defined(_LMP_INTEL_OFFLOAD)
-    *timer_compute = MIC_Wtime() - *timer_compute;
-    #endif
   } // end offload
   if (offload)
     fix->stop_watch(TIME_OFFLOAD_LATENCY);

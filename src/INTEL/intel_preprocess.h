@@ -41,11 +41,6 @@
 #ifdef __INTEL_OFFLOAD
 #ifdef LMP_INTEL_OFFLOAD
 #define _LMP_INTEL_OFFLOAD
-#ifdef __TARGET_ARCH_MIC
-#ifndef __MIC__
-#define __MIC__ 1
-#endif
-#endif
 #endif
 #endif
 
@@ -103,12 +98,6 @@ enum {TIME_PACK, TIME_HOST_NEIGHBOR, TIME_HOST_PAIR, TIME_OFFLOAD_NEIGHBOR,
 #define INTEL_VECTOR_WIDTH 16
 #define INTEL_V512 1
 #define INTEL_VMASK 1
-#else
-#ifdef __MIC__
-#define INTEL_V512 1
-#define INTEL_VMASK 1
-#define INTEL_HTHREADS 4
-#endif
 #endif
 
 #ifdef __AVX512ER__
@@ -121,11 +110,7 @@ enum {TIME_PACK, TIME_HOST_NEIGHBOR, TIME_HOST_PAIR, TIME_OFFLOAD_NEIGHBOR,
 #endif
 #endif
 
-#ifdef __MIC__
-#define INTEL_COMPILE_WIDTH INTEL_MIC_VECTOR_WIDTH
-#else
 #define INTEL_COMPILE_WIDTH INTEL_VECTOR_WIDTH
-#endif
 
 #else
 

@@ -302,10 +302,6 @@ void PairGayBerneIntel::eval(const int offload, const int vflag,
     signal(f_start)
   #endif
   {
-    #if defined(__MIC__) && defined(_LMP_INTEL_OFFLOAD)
-    *timer_compute=MIC_Wtime();
-    #endif
-
     #ifdef _LMP_INTEL_OFFLOAD
     if (separate_flag) {
       if (separate_flag < 3) {
@@ -867,10 +863,6 @@ void PairGayBerneIntel::eval(const int offload, const int vflag,
       ev_global[6] = ov4;
       ev_global[7] = ov5;
     }
-
-    #if defined(__MIC__) && defined(_LMP_INTEL_OFFLOAD)
-    *timer_compute = MIC_Wtime() - *timer_compute;
-    #endif
   } // offload
 
   if (offload)

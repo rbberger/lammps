@@ -101,7 +101,7 @@ arguments specified in the pair_style command, and coefficients
 specified by the associated :doc:`pair_coeff <pair_coeff>` command.
 
 There are also additional accelerated pair styles included in the
-LAMMPS distribution for faster performance on CPUs, GPUs, and KNLs.
+LAMMPS distribution for faster performance on CPUs and GPUs.
 The individual style names on the :doc:`Commands pair <Commands_pair>`
 doc page are followed by one or more of (g,i,k,o,t) to indicate which
 accelerated styles exist.

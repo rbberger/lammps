@@ -29,24 +29,13 @@
 // implementations.
 
 // Vector classes provided with the intel compiler
-#if defined(__MIC__) && !defined(__AVX512F__)
-#include <mic/micvec.h>
-#else
 #include <dvec.h> // icc-mmic hates generating movq
 #include <fvec.h>
-#endif
 
 namespace lmp_intel {
 
 // Self explanatory mostly, KNC=IMCI and AVX-512, NONE=Scalar.
 enum CalculationMode {KNC, AVX, AVX2, SSE, NONE};
-#ifdef __MIC__
-  #ifdef LMP_INTEL_VECTOR_MIC
-  static const CalculationMode mode = LMP_INTEL_VECTOR_MIC;
-  #else
-  static const CalculationMode mode = KNC;
-  #endif
-#else
   #ifdef LMP_INTEL_VECTOR_HOST
   static const CalculationMode mode = LMP_INTEL_VECTOR_HOST;
   #else
@@ -64,7 +53,6 @@ enum CalculationMode {KNC, AVX, AVX2, SSE, NONE};
       #endif
     #endif
   #endif
-#endif
 
 // This is used in the selection logic
 template<CalculationMode mode>
@@ -82,338 +70,10 @@ struct vector_traits<AVX> {
 template<class flt_t, CalculationMode mode>
 struct vector_ops {};
 
-// Intrinsic routines for IMCI and AVX-512
-#if defined(__MIC__) || defined(__AVX512F__)
-// Integer vector class
-#ifdef __INTEL_LLVM_COMPILER
-#pragma pack(push,16)
-#else
-#pragma pack(push,64)
-#endif
-struct ivec32x16 {
-  __m512i vec;
-  ivec32x16() {}
-  ivec32x16(__m512i m) { vec = m; }
-  ivec32x16(const int * a) {
-    vec = _mm512_load_epi32(reinterpret_cast<const int *>(a));
-  }
-  explicit ivec32x16(int i) { vec = _mm512_set1_epi32(i); }
-  operator __m512i() const { return vec; }
-  friend ivec32x16 operator &(const ivec32x16 &a, const ivec32x16 &b) {
-    return _mm512_and_epi32(a, b);
-  }
-  friend ivec32x16 operator |(const ivec32x16 &a, const ivec32x16 &b) {
-    return _mm512_or_epi32(a, b);
-  }
-  friend ivec32x16 operator +(const ivec32x16 &a, const ivec32x16 &b) {
-    return _mm512_add_epi32(a, b);
-  }
-};
-#pragma pack(pop)
-// Double precision routines
-template<>
-struct vector_ops<double, KNC> {
-    static const int VL = 8;
-    typedef double fscal;
-    typedef F64vec8 fvec;
-    typedef ivec32x16 ivec;
-    typedef __mmask16 bvec;
-    typedef double farr[8] __attribute__((aligned(64)));
-    typedef int iarr[16] __attribute__((aligned(64)));
-    static fvec recip(const fvec &a) { return _mm512_recip_pd(a); }
-    template<int scale>
-    static void gather_prefetch_t0(const ivec &idx, bvec mask, const void *base) {
-#ifdef __AVX512PF__
-      _mm512_mask_prefetch_i32gather_ps(idx, mask, base, scale, _MM_HINT_T0);
-#endif
-    }
-    template<int scale>
-    static fvec gather(const fvec &from, bvec mask, const ivec &idx, const void *base) {
-      return _mm512_mask_i32gather_pd(from, mask, _mm512_castsi512_si256(idx),
-                                      base, scale);
-    }
-    static fvec blend(const bvec &mask, const fvec &a, const fvec &b) {
-      return _mm512_mask_blend_pd(mask, a, b);
-    }
-    static fvec fmadd(const fvec &a, const fvec &b, const fvec &c) {
-      return _mm512_fmadd_pd(a, b, c);
-    }
-    static fvec zero() {
-      return _mm512_setzero_pd();
-    }
-    static bvec cmpeq(const fvec &a, const fvec &b) {
-      return _mm512_cmp_pd_mask(a, b, _CMP_EQ_OQ);
-    }
-    static bvec cmpnle(const fvec &a, const fvec &b) {
-      return _mm512_cmp_pd_mask(a, b, _CMP_NLE_US);
-    }
-    static bvec cmple(const fvec &a, const fvec &b) {
-      return _mm512_cmp_pd_mask(a, b, _CMP_LE_OS);
-    }
-    static bvec cmplt(const fvec &a, const fvec &b) {
-      return _mm512_cmp_pd_mask(a, b, _CMP_LT_OS);
-    }
-    static bvec int_cmpneq(const ivec &a, const ivec &b) {
-      return _mm512_cmpneq_epi32_mask(a, b);
-    }
-    static bvec int_cmplt(const ivec &a, const ivec &b) {
-      return _mm512_cmplt_epi32_mask(a, b);
-    }
-    static fvec invsqrt(const fvec &a) {
-      return _mm512_invsqrt_pd(a);
-    }
-    static fvec sincos(fvec *cos, const fvec &a) {
-      #if __INTEL_COMPILER+0 < 1500
-      *reinterpret_cast<__m512d *>(cos) = _mm512_cos_pd(a);
-      return _mm512_sin_pd(a);
-      #else
-      return _mm512_sincos_pd(reinterpret_cast<__m512d *>(cos), a);
-      #endif
-    }
-    static fscal reduce_add(const fvec &a) {
-      return _mm512_reduce_add_pd(a);
-    }
-    static ivec int_mullo(const ivec &a, const ivec &b) {
-      return _mm512_mullo_epi32(a, b);
-    }
-    static ivec int_mask_add(const ivec &src, const bvec &mask, const ivec &a, const ivec &b) {
-      return _mm512_mask_add_epi32(src, mask, a, b);
-    }
-    template<int scale>
-    static ivec int_gather(const ivec &from, bvec mask, const ivec &idx, const void *base) {
-      return _mm512_mask_i32gather_epi32(from, mask, idx, base, scale);
-    }
-    static fvec mask_add(const fvec &src, const bvec &mask, const fvec &a, const fvec &b) {
-      return _mm512_mask_add_pd(src, mask, a, b);
-    }
-    static void store(void *at, const fvec &a) {
-      _mm512_store_pd(at, a);
-    }
-    static void int_store(void *at, const ivec &a) {
-      _mm512_store_epi32(at, a);
-    }
-    static void mask_store(int *at, const bvec &a) {
-      for (int i = 0; i < 8; i++) {
-        at[i] = (a >> i) & 1;
-      }
-    }
-    static fvec min(const fvec &a, const fvec &b) {
-      return _mm512_min_pd(a, b);
-    }
-    static bool mask_test_at(const bvec &mask, int at) {
-      return mask & (1 << at);
-    }
-    static bool mask_testz(const bvec &mask) {
-      return mask == 0;
-    }
-
-    static bvec mask_enable_lower(int n) {
-      return 0xFF >> (VL - n);
-    }
-
-    static ivec int_load_vl(const int *a) {
-      return _mm512_load_epi32(a);
-    }
-    static void int_clear_arr(int *a) {
-      _mm512_store_epi32(a, ivec(0));
-    }
-    static void int_print(const ivec &a) {
-      iarr tmp;
-      _mm512_store_epi32(tmp, a);
-      for (int i = 0; i < 8; i++) printf("%d ", tmp[i]);
-      printf("\n");
-    }
-    template<class T>
-    static void gather_x(const ivec &idxs, const bvec &mask, const T *base, fvec *x, fvec *y, fvec *z, ivec *w) {
-      *x = gather<1>(*x, mask, idxs, &base->x);
-      *y = gather<1>(*y, mask, idxs, &base->y);
-      *z = gather<1>(*z, mask, idxs, &base->z);
-      *w = int_gather<1>(*w, mask, idxs, &base->w);
-    }
-    static void gather_8(const ivec &idxs, const bvec &mask, const void *base,
-        fvec *r0, fvec *r1, fvec *r2, fvec *r3, fvec *r4, fvec *r5, fvec *r6, fvec *r7) {
-      *r0 = gather<4>(*r0, mask, idxs, reinterpret_cast<const char *>(base) +  0);
-      *r1 = gather<4>(*r1, mask, idxs, reinterpret_cast<const char *>(base) +  8);
-      *r2 = gather<4>(*r2, mask, idxs, reinterpret_cast<const char *>(base) + 16);
-      *r3 = gather<4>(*r3, mask, idxs, reinterpret_cast<const char *>(base) + 24);
-      *r4 = gather<4>(*r4, mask, idxs, reinterpret_cast<const char *>(base) + 32);
-      *r5 = gather<4>(*r5, mask, idxs, reinterpret_cast<const char *>(base) + 40);
-      *r6 = gather<4>(*r6, mask, idxs, reinterpret_cast<const char *>(base) + 48);
-      *r7 = gather<4>(*r7, mask, idxs, reinterpret_cast<const char *>(base) + 56);
-    }
-    static void gather_4(const ivec &idxs, const bvec &mask, const void *base,
-        fvec *r0, fvec *r1, fvec *r2, fvec *r3) {
-      *r0 = gather<4>(*r0, mask, idxs, reinterpret_cast<const char *>(base) +  0);
-      *r1 = gather<4>(*r1, mask, idxs, reinterpret_cast<const char *>(base) +  8);
-      *r2 = gather<4>(*r2, mask, idxs, reinterpret_cast<const char *>(base) + 16);
-      *r3 = gather<4>(*r3, mask, idxs, reinterpret_cast<const char *>(base) + 24);
-    }
-};
-
-template<>
-struct vector_ops<float, KNC> {
-    static const int VL = 16;
-    static const int ALIGN = 64;
-    typedef float fscal;
-    typedef F32vec16 fvec;
-    typedef ivec32x16 ivec;
-    typedef __mmask16 bvec;
-    typedef float farr[16] __attribute__((aligned(64)));
-    typedef int iarr[16] __attribute__((aligned(64)));
-    static const bvec full_mask = 0xFFFF;
-    static fvec recip(const fvec &a) { return _mm512_recip_ps(a); }
-    template<int scale>
-    static void gather_prefetch_t0(const ivec &idx, bvec mask, const void *base) {
-#ifdef __AVX512PF__
-      _mm512_mask_prefetch_i32gather_ps(idx, mask, base, scale, _MM_HINT_T0);
-#endif
-    }
-    template<int scale>
-    static fvec gather(const fvec &from, bvec mask, const ivec &idx, const void *base) {
-      return _mm512_mask_i32gather_ps(from, mask, idx, base, scale);
-    }
-    static fvec blend(const bvec &mask, const fvec &a, const fvec &b) {
-      return _mm512_mask_blend_ps(mask, a, b);
-    }
-    static fvec fmadd(const fvec &a, const fvec &b, const fvec &c) {
-      return _mm512_fmadd_ps(a, b, c);
-    }
-    static fvec zero() {
-      return _mm512_setzero_ps();
-    }
-    static bvec cmpeq(const fvec &a, const fvec &b) {
-      return _mm512_cmpeq_ps_mask(a, b);
-    }
-    static bvec cmpnle(const fvec &a, const fvec &b) {
-      return _mm512_cmpnle_ps_mask(a, b);
-    }
-    static bvec cmple(const fvec &a, const fvec &b) {
-      return _mm512_cmple_ps_mask(a, b);
-    }
-    static bvec cmplt(const fvec &a, const fvec &b) {
-      return _mm512_cmplt_ps_mask(a, b);
-    }
-    static bvec int_cmpneq(const ivec &a, const ivec &b) {
-      return _mm512_cmpneq_epi32_mask(a, b);
-    }
-    static bvec int_cmplt(const ivec &a, const ivec &b) {
-      return _mm512_cmplt_epi32_mask(a, b);
-    }
-    static fvec invsqrt(const fvec &a) {
-      return _mm512_invsqrt_ps(a);
-    }
-    static fvec sincos(fvec *cos, const fvec &a) {
-      #if __INTEL_COMPILER+0 < 1500
-      *reinterpret_cast<__m512 *>(cos) = _mm512_cos_ps(a);
-      return _mm512_sin_ps(a);
-      #else
-      return _mm512_sincos_ps(reinterpret_cast<__m512 *>(cos), a);
-      #endif
-    }
-    static fscal reduce_add(const fvec &a) {
-      return _mm512_reduce_add_ps(a);
-    }
-    static ivec int_mullo(const ivec &a, const ivec &b) {
-      return _mm512_mullo_epi32(a, b);
-    }
-    static ivec int_mask_add(const ivec &src, const bvec &mask, const ivec &a, const ivec &b) {
-      return _mm512_mask_add_epi32(src, mask, a, b);
-    }
-    template<int scale>
-    static ivec int_gather(const ivec &from, bvec mask, const ivec &idx, const void *base) {
-      return _mm512_mask_i32gather_epi32(from, mask, idx, base, scale);
-    }
-    static fvec mask_add(const fvec &src, const bvec &mask, const fvec &a, const fvec &b) {
-      return _mm512_mask_add_ps(src, mask, a, b);
-    }
-    static void store(void *at, const fvec &a) {
-      _mm512_store_ps(at, a);
-    }
-    static void int_store(void *at, const ivec &a) {
-      _mm512_store_epi32(at, a);
-    }
-    static void mask_store(int *at, const bvec &a) {
-      for (int i = 0; i < 16; i++) {
-        at[i] = (a >> i) & 1;
-      }
-    }
-    static fvec min(const fvec &a, const fvec &b) {
-      return _mm512_min_ps(a, b);
-    }
-    static bool mask_test_at(const bvec &mask, int at) {
-      return mask & (1 << at);
-    }
-    static bool mask_testz(const bvec &mask) {
-      return mask == 0;
-    }
-
-    static bvec mask_enable_lower(int n) {
-      return 0xFFFF >> (VL - n);
-    }
-
-    static ivec int_load_vl(const int *a) {
-      return _mm512_load_epi32(a);
-    }
-    static void int_clear_arr(int *a) {
-      _mm512_store_epi32(a, ivec(0));
-    }
-    static void int_print(const ivec &a) {
-      iarr tmp;
-      _mm512_store_epi32(tmp, a);
-      for (int i = 0; i < 16; i++) printf("%d ", tmp[i]);
-      printf("\n");
-    }
-    template<class T>
-    static void gather_x(const ivec &idxs, const bvec &mask, const T *base, fvec *x, fvec *y, fvec *z, ivec *w) {
-      *x = gather<1>(*x, mask, idxs, &base->x);
-      *y = gather<1>(*y, mask, idxs, &base->y);
-      *z = gather<1>(*z, mask, idxs, &base->z);
-      *w = int_gather<1>(*w, mask, idxs, &base->w);
-    }
-    static void gather_8(const ivec &idxs, const bvec &mask, const void *base,
-        fvec *r0, fvec *r1, fvec *r2, fvec *r3, fvec *r4, fvec *r5, fvec *r6, fvec *r7) {
-      *r0 = gather<4>(*r0, mask, idxs, reinterpret_cast<const char *>(base) +  0);
-      *r1 = gather<4>(*r1, mask, idxs, reinterpret_cast<const char *>(base) +  4);
-      *r2 = gather<4>(*r2, mask, idxs, reinterpret_cast<const char *>(base) +  8);
-      *r3 = gather<4>(*r3, mask, idxs, reinterpret_cast<const char *>(base) + 12);
-      *r4 = gather<4>(*r4, mask, idxs, reinterpret_cast<const char *>(base) + 16);
-      *r5 = gather<4>(*r5, mask, idxs, reinterpret_cast<const char *>(base) + 20);
-      *r6 = gather<4>(*r6, mask, idxs, reinterpret_cast<const char *>(base) + 24);
-      *r7 = gather<4>(*r7, mask, idxs, reinterpret_cast<const char *>(base) + 28);
-    }
-    static void gather_4(const ivec &idxs, const bvec &mask, const void *base,
-        fvec *r0, fvec *r1, fvec *r2, fvec *r3) {
-      *r0 = gather<4>(*r0, mask, idxs, reinterpret_cast<const char *>(base) +  0);
-      *r1 = gather<4>(*r1, mask, idxs, reinterpret_cast<const char *>(base) +  4);
-      *r2 = gather<4>(*r2, mask, idxs, reinterpret_cast<const char *>(base) +  8);
-      *r3 = gather<4>(*r3, mask, idxs, reinterpret_cast<const char *>(base) + 12);
-    }
-    // Additional routines needed for the implementation of mixed precision
-    static fvec cvtdown(const vector_ops<double,KNC>::fvec &lo,
-                        const vector_ops<double,KNC>::fvec &hi) {
-      __m512 t1 = _mm512_cvtpd_pslo(lo);
-      __m512 t2 = _mm512_cvtpd_pslo(hi);
-      return _mm512_mask_shuffle_f32x4(_mm512_undefined_ps(), 0xFF00, t2, t2,
-                                       0x4E);
-    }
-    static vector_ops<double,KNC>::fvec cvtup_lo(const fvec &a) {
-      return _mm512_cvtpslo_pd(a);
-    }
-    static vector_ops<double,KNC>::fvec cvtup_hi(const fvec &a) {
-      return _mm512_cvtpslo_pd(_mm512_shuffle_f32x4(a, a, 0x4E));
-    }
-    static void mask_cvtup(const bvec &a, vector_ops<double,KNC>::bvec *blo, vector_ops<double,KNC>::bvec *bhi) {
-      *blo = a & 0xFF;
-      *bhi = a >> 8;
-    }
-};
-#endif
-
 //////////////////////////////////////////////////////////////////////////////
 // AVX/SSE
 //////////////////////////////////////////////////////////////////////////////
 
-#ifndef __MIC__
 // class definitions for integer and masks for AVX
 // Note that we have to lower a number of operations to SSE, notably comparison
 // and integer operations.
@@ -1691,9 +1351,6 @@ struct vector_ops<float, SSE> {
       *bhi = _mm_unpackhi_epi32(a, a);
     }
 };
-
-
-#endif
 
 // Scalar implementation
 template<class flt_t>
