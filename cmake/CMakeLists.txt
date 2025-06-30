@@ -921,6 +921,21 @@ if(BUILD_SHARED_LIBS)
       install-python ${Python_EXECUTABLE} ${LAMMPS_PYTHON_DIR}/install.py -p ${LAMMPS_PYTHON_DIR}/lammps
       -l ${LIBLAMMPS_SHARED_BINARY} -w ${MY_BUILD_DIR} -v ${LAMMPS_SOURCE_DIR}/version.h
       COMMENT "Installing LAMMPS Python module")
+    option(LAMMPS_INSTALL_PYTHON_PACKAGE "Install LAMMPS Python package as part of install target" ON)
+    if(LAMMPS_INSTALL_PYTHON_PACKAGE)
+      set(LAMMPS_INSTALL_PYTHONDIR
+         "${CMAKE_INSTALL_LIBDIR}/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages"
+         CACHE STRING
+         "Python installation directory relative to CMAKE_INSTALL_PREFIX"
+      )
+      mark_as_advanced(LAMMPS_INSTALL_PYTHONDIR)
+      install(CODE
+        "set(ENV{LAMMPS_VERSION_FILE} ${LAMMPS_SOURCE_DIR}/version.h)
+         execute_process(COMMAND ${Python_EXECUTABLE} -m pip install \
+         --target=${CMAKE_INSTALL_PREFIX}/${LAMMPS_INSTALL_PYTHONDIR} . \
+         WORKING_DIRECTORY ${LAMMPS_PYTHON_DIR})"
+      )
+    endif()
   else()
     add_custom_target(
       install-python
