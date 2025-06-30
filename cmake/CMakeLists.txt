@@ -928,6 +928,10 @@ if(BUILD_SHARED_LIBS)
       install-python ${Python_EXECUTABLE} ${LAMMPS_PYTHON_DIR}/install.py -p ${LAMMPS_PYTHON_DIR}/lammps
       -l ${LIBLAMMPS_SHARED_BINARY} -w ${MY_BUILD_DIR} -v ${LAMMPS_SOURCE_DIR}/version.h
       COMMENT "Installing LAMMPS Python module")
+    install(CODE
+      "set(ENV{LAMMPS_VERSION_FILE} ${LAMMPS_SOURCE_DIR}/version.h)
+       execute_process(COMMAND ${Python_EXECUTABLE} -m pip install --prefix=${CMAKE_INSTALL_PREFIX} . WORKING_DIRECTORY ${LAMMPS_PYTHON_DIR})"
+    )
   else()
     add_custom_target(
       install-python
